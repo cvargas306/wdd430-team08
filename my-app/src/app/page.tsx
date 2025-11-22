@@ -4,17 +4,6 @@ export default function Home() {
   return (
     <main className={styles.main}>
       {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.logo}>Handcrafted Haven</h1>
-        <nav>
-          <ul className={styles.navList}>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Shop</a></li>
-            <li><a href="#">Sellers</a></li>
-            <li><a href="#">Login</a></li>
-          </ul>
-        </nav>
-      </header>
 
       {/* Hero Section */}
       <section className={styles.hero}>
@@ -58,9 +47,6 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className={styles.footer}>
-        <p>© {new Date().getFullYear()} Handcrafted Haven — All rights reserved.</p>
-      </footer>
     </main>
   );
 }

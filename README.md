@@ -8,6 +8,6 @@
 
  Technologies:
  -Frontend: HTML, CSS, JS, Next.js
- -Backend: Node.js and MongoDB database
+ -Backend: Node.js and PostgreSQL database
  -Deployment: Vercel
  
