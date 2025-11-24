@@ -1,0 +1,263 @@
+:root {
+  --primary-bg-color: #f8f3ef;
+  --text-primary: #4a2f1b;
+  --second-bg-color: #c2ab97;
+  --thrid-bg-color: #49111c;
+  --bg-join: #6b705c;
+}
+
+body{
+    font-family: var(--font-roboto);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+  padding: 2rem 1.5rem;
+}
+
+/* --- HERO --- */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block: 3rem;
+  background-color: var(--primary-bg-color);
+  padding-inline: 20px;
+  text-align: center;
+ 
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-playfair);
+  font-weight: 700;
+}
+
+.hero p {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  max-width: 750px;
+}
+
+/* --- STORY SECTION --- */
+.story {
+  display: flex;
+  flex-direction: column;      /* mobile: imagen arriba, texto abajo */
+  gap: 1.5rem;
+  align-items: center;
+  background: var(--primary-bg-color);
+  padding: 2rem;
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.storyImage {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;            /* evita que la img “salga” del contenedor */
+  border-radius: 10px;
+}
+
+.storyImage img {
+  width: 100%;
+  height: auto;   
+  object-fit: contain;
+}
+
+.storyText {
+  width: 100%;
+}
+
+.storyText h2{
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.storyText p{
+    color: var(--text-primary);
+    font-size: 1rem;
+    text-align:justify;
+    padding-top: 15px;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* --- VALUES SECTION --- */
+.values {
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--second-bg-color);
+}
+
+.valuesSubtitle {
+  max-width: 650px;
+  margin: 0.5rem auto 2rem;
+}
+
+.valuesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background:var(--primary-bg-color);
+  color: var(--text-primary);
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card h3{
+    padding-block: 10px;
+}
+
+.cardIcon {
+  font-size: 2rem;
+}
+
+/* --- JOIN SECTION --- */
+
+.joinSection {
+  background: var(--bg-join);
+  color: #ffff;
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.joinSection h2 {
+  font-size: 1.9rem;
+  margin-bottom: 1rem;
+}
+
+.joinSection p {
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.joinButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btnLight, .btnDark {
+  background: var(--primary-bg-color);
+  color: var(--text-primary);
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btnLight:hover, .btnDark:hover{
+    background-color: var(--thrid-bg-color);
+    color: white;
+}
+
+@media (max-width: 768px) {
+  .story {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .storyImage {
+    width: 100%;
+    height: 400px;
+  }
+
+  .storyText{
+    padding-top: 0;
+  }
+
+  .valuesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .joinButtons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .joinButtons button {
+    width: 100%;
+  }
+
+  .values{
+    padding-block: 5rem;
+  }
+
+  .joinSection{
+    padding-block: 5rem;
+  }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .story {
+    flex-direction: column; 
+    align-items: center;
+  }
+
+  .storyImage img {
+    height: clamp(240px, 35vh, 420px);
+    width: 100%;
+    object-fit: cover;
+  }
+
+  .storyText {
+    padding-top: 0.8rem;
+  }
+  .valuesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .values{
+    padding-block: 5rem;
+  }
+
+  .joinSection{
+    padding-block: 5rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+  .story {
+    flex-direction:row;
+    padding-inline: 20%;
+  }
+
+  .storyImage img{
+    height: 400px;
+  }
+
+  .story p{
+    font-size: 18px;
+  }
+
+  .values{
+    padding-block: 5rem;
+  }
+
+  .joinSection{
+    padding-block: 5rem;
+  }
+}
