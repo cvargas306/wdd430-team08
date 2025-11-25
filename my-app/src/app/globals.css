@@ -40,3 +40,13 @@ a {
     color-scheme: dark;
   }
 }
+
+/* Apply Roboto as the default font */
+body {
+  font-family: var(--font-roboto), sans-serif;
+}
+
+/* Apply Playfair Display to all headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-playfair), serif;
+}
