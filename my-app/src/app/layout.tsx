@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Roboto } from "next/font/google";
 import Footer from "./components/footer/footer"
 import Navbar from "./components/navbar/navbar"
+import { AuthProvider } from "./components/auth/AuthContext"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -28,9 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} ${roboto.variable}`}>
-        <Navbar />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <Navbar />
+          {children}
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

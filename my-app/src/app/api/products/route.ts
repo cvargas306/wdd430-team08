@@ -17,15 +17,28 @@ interface Product {
 }
 
 /* ---------------------------------------------
-   GET: Fetch all products
----------------------------------------------- */
+    GET: Fetch all products or filter by seller_id
+ ---------------------------------------------- */
 export async function GET(req: NextRequest) {
   try {
-    const products = await sql<Product[]>`
-      SELECT *
-      FROM products
-      ORDER BY created_at DESC
-    `;
+    const { searchParams } = new URL(req.url);
+    const sellerId = searchParams.get('seller_id');
+
+    let products;
+    if (sellerId) {
+      products = await sql<Product[]>`
+        SELECT *
+        FROM products
+        WHERE seller_id = ${sellerId}
+        ORDER BY created_at DESC
+      `;
+    } else {
+      products = await sql<Product[]>`
+        SELECT *
+        FROM products
+        ORDER BY created_at DESC
+      `;
+    }
 
     return NextResponse.json(products, { status: 200 });
   } catch (error: any) {
