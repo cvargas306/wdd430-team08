@@ -3,6 +3,37 @@ import postgres from "postgres";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
+const useMock = process.env.NODE_ENV === 'development';
+
+const mockSellers: Seller[] = [
+  {
+    seller_id: "1",
+    name: "Clay & Light Studio",
+    category: "Ceramics & Pottery",
+    description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
+    location: "Portland, Oregon",
+    rating: 4.9,
+    reviews: 324,
+    years_active: 5,
+    followers: 2840,
+    email: "claylight@example.com",
+    created_at: "2020-01-01T00:00:00Z",
+  },
+  {
+    seller_id: "2",
+    name: "Sustainable Textiles Co",
+    category: "Organic Textiles",
+    description: "Produces premium organic linens and hand-dyed fabrics through zero-waste methods.",
+    location: "Portland, Oregon",
+    rating: 4.8,
+    reviews: 287,
+    years_active: 3,
+    followers: 1920,
+    email: "sustainable@example.com",
+    created_at: "2021-01-01T00:00:00Z",
+  },
+];
+
 interface Seller {
   seller_id: string;
   name: string;
@@ -21,8 +52,12 @@ interface Seller {
 // GET: fetch all sellers
 export async function GET(req: NextRequest) {
   try {
-    const sellers: Seller[] = await sql<Seller[]>`SELECT seller_id, name, category, description, location, rating, reviews, years_active, followers, image, email, created_at FROM sellers ORDER BY created_at DESC`;
-    return NextResponse.json(sellers, { status: 200 });
+    if (useMock) {
+      return NextResponse.json(mockSellers, { status: 200 });
+    } else {
+      const sellers: Seller[] = await sql<Seller[]>`SELECT seller_id, name, category, description, location, rating, reviews, years_active, followers, image, email, created_at FROM sellers ORDER BY created_at DESC`;
+      return NextResponse.json(sellers, { status: 200 });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

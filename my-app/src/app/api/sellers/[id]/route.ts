@@ -3,6 +3,24 @@ import postgres from "postgres";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
+const useMock = process.env.NODE_ENV === 'development';
+
+const mockSellers = [
+  {
+    seller_id: "1",
+    name: "Clay & Light Studio",
+    category: "Ceramics & Pottery",
+    description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
+    location: "Portland, Oregon",
+    rating: 4.9,
+    reviews: 324,
+    years_active: 5,
+    followers: 2840,
+    email: "claylight@example.com",
+    created_at: "2020-01-01T00:00:00Z",
+  },
+];
+
 interface Seller {
   seller_id: string;
   name: string;
@@ -16,6 +34,31 @@ interface Seller {
   image?: string;
   email: string;
   created_at: string;
+}
+
+// GET: fetch a specific seller
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+
+    if (useMock) {
+      const seller = mockSellers.find(s => s.seller_id === id);
+      if (!seller) {
+        return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+      }
+      return NextResponse.json(seller, { status: 200 });
+    } else {
+      const sellers: Seller[] = await sql<Seller[]>`SELECT seller_id, name, category, description, location, rating, reviews, years_active, followers, image, email, created_at FROM sellers WHERE seller_id = ${id}`;
+
+      if (sellers.length === 0) {
+        return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+      }
+
+      return NextResponse.json(sellers[0], { status: 200 });
+    }
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 // PUT: update a seller

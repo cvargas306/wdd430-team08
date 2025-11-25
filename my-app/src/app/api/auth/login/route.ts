@@ -47,11 +47,11 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // Production: Check database
-      // Assuming there's a users table with email, password_hash, etc.
-      const users = await sql<User[]>`
-        SELECT user_id, email, name, is_seller, seller_id
-        FROM users
-        WHERE email = ${email} AND password_hash = crypt(${password}, password_hash)
+      const users = await sql`
+        SELECT u.user_id, u.email, u.name, u.is_seller, s.seller_id
+        FROM users u
+        LEFT JOIN sellers s ON u.email = s.email
+        WHERE u.email = ${email} AND u.password_hash = crypt(${password}, u.password_hash)
       `;
 
       if (users.length === 0) {
