@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
+import jwt from "jsonwebtoken";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
@@ -12,6 +13,9 @@ export async function POST(req: NextRequest) {
       email,
       password,
       name,
+      bio,
+      birthday,
+      profile_image,
       is_seller,
       category,
       description,
@@ -32,51 +36,53 @@ export async function POST(req: NextRequest) {
 
     if (useMock) {
       // Mock signup - just return success
+      const seller = {
+        seller_id: Date.now().toString(),
+        email,
+        name,
+        bio: bio || null,
+        profile_image: profile_image || null,
+        birthday: birthday || null,
+        created_at: new Date().toISOString(),
+      };
+      const token = jwt.sign(
+        { sellerId: seller.seller_id, email: seller.email, name: seller.name },
+        process.env.JWT_SECRET!,
+        { expiresIn: '7d' }
+      );
       return NextResponse.json({
         message: "Account created successfully",
-        user: {
-          user_id: Date.now().toString(),
-          email,
-          name,
-          is_seller: is_seller || false,
-          ...(is_seller && { seller_id: Date.now().toString() })
-        }
+        token,
+        seller
       }, { status: 201 });
     } else {
-      // Production: Create user in database
-      // First check if user exists
-      const existingUser = await sql`
-        SELECT user_id FROM users WHERE email = ${email}
+      // Production: Create seller in database
+      // First check if seller exists
+      const existingSeller = await sql`
+        SELECT seller_id FROM sellers WHERE email = ${email}
       `;
 
-      if (existingUser.length > 0) {
-        return NextResponse.json({ error: "User with this email already exists" }, { status: 400 });
+      if (existingSeller.length > 0) {
+        return NextResponse.json({ error: "Seller with this email already exists" }, { status: 400 });
       }
 
-      // Create user
-      const newUser = await sql`
-        INSERT INTO users (email, password_hash, name, is_seller)
-        VALUES (${email}, crypt(${password}, gen_salt('bf')), ${name}, ${is_seller || false})
-        RETURNING user_id, email, name, is_seller
+      // Create seller
+      const newSeller = await sql`
+        INSERT INTO sellers (email, password_hash, name, bio, profile_image, birthday, category, description, location, rating, reviews, years_active, followers)
+        VALUES (${email}, crypt(${password}, gen_salt('bf')), ${name}, ${bio}, ${profile_image}, ${birthday}, ${category}, ${description}, ${location}, ${rating || 0}, ${reviews || 0}, ${years_active || 0}, ${followers || 0})
+        RETURNING seller_id, email, name, bio, profile_image, birthday, category, description, location, rating, reviews, years_active, followers, created_at
       `;
 
-      let sellerId = null;
-      // If seller, create seller profile
-      if (is_seller) {
-        const newSeller = await sql`
-          INSERT INTO sellers (name, category, description, location, rating, reviews, years_active, followers, email)
-          VALUES (${name}, ${category}, ${description}, ${location}, ${rating || 0}, ${reviews || 0}, ${years_active || 0}, ${followers || 0}, ${email})
-          RETURNING seller_id
-        `;
-        sellerId = newSeller[0].seller_id;
-      }
-
+      const seller = newSeller[0];
+      const token = jwt.sign(
+        { sellerId: seller.seller_id, email: seller.email, name: seller.name },
+        process.env.JWT_SECRET!,
+        { expiresIn: '7d' }
+      );
       return NextResponse.json({
         message: "Account created successfully",
-        user: {
-          ...newUser[0],
-          ...(sellerId && { seller_id: sellerId })
-        }
+        token,
+        seller
       }, { status: 201 });
     }
   } catch (error: any) {

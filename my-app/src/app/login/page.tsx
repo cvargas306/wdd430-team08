@@ -9,23 +9,25 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
     try {
       const success = await login(email, password);
       if (success) {
         router.push("/");
       } else {
-        alert("Invalid credentials");
+        setError("Invalid credentials");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Login failed. Please try again.");
+      setError("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -65,6 +67,21 @@ export default function LoginPage() {
             Sign in to your account
           </p>
         </div>
+
+        {error && (
+          <div style={{
+            backgroundColor: "#ffe6e6",
+            color: "#d32f2f",
+            padding: "1rem",
+            borderRadius: "8px",
+            marginBottom: "1.5rem",
+            border: "1px solid #ffcdd2",
+            textAlign: "center",
+            fontSize: "0.9rem"
+          }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "1.5rem" }}>

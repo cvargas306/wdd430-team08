@@ -40,7 +40,7 @@ export default function Navbar() {
         ) : user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
-              onClick={() => window.location.href = user.is_seller ? '/seller/profile' : '/profile'}
+              onClick={() => window.location.href = '/seller/profile'}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
             >
               <User size={22} />
@@ -84,7 +84,7 @@ export default function Navbar() {
           ) : user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
-                onClick={() => window.location.href = user.is_seller ? '/seller/profile' : '/profile'}
+                onClick={() => window.location.href = '/seller/profile'}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
               >
                 <User size={22} />

@@ -1,17 +1,20 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import jwt from 'jsonwebtoken';
 
-interface User {
-  user_id: string;
+interface Seller {
+  seller_id: string;
   email: string;
   name: string;
-  is_seller: boolean;
-  seller_id?: string;
+  bio?: string | null;
+  profile_image?: string | null;
+  birthday?: string | null;
+  created_at: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: Seller | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
@@ -32,14 +35,32 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Seller | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is logged in on mount
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwt.decode(token) as any;
+        if (decoded && decoded.exp * 1000 > Date.now()) {
+          setUser({
+            seller_id: decoded.sellerId,
+            email: decoded.email,
+            name: decoded.name,
+            bio: null,
+            profile_image: null,
+            birthday: null,
+            created_at: new Date().toISOString()
+          });
+        } else {
+          localStorage.removeItem('token');
+        }
+      } catch (error) {
+        console.error('Token decode error:', error);
+        localStorage.removeItem('token');
+      }
     }
     setIsLoading(false);
   }, []);
@@ -53,9 +74,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
+        const { token, seller } = await response.json();
+        localStorage.setItem('token', token);
+        setUser(seller);
         return true;
       } else {
         return false;
@@ -68,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const value: AuthContextType = {

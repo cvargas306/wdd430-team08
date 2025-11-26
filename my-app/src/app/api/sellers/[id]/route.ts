@@ -3,7 +3,7 @@ import postgres from "postgres";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-const useMock = process.env.NODE_ENV === 'development';
+const useMock = false;
 
 const mockSellers = [
   {

@@ -3,7 +3,7 @@ import postgres from "postgres";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-const useMock = process.env.NODE_ENV === 'development';
+const useMock = false;
 
 const mockProducts: Product[] = [
   {
@@ -84,10 +84,17 @@ export async function GET(req: NextRequest) {
 }
 
 /* ---------------------------------------------
-    POST: Create a new product
- ---------------------------------------------- */
+     POST: Create a new product
+  ---------------------------------------------- */
 export async function POST(req: NextRequest) {
   try {
+    // Get seller info from middleware
+    const sellerId = req.headers.get('x-seller-id');
+
+    if (!sellerId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const body = await req.json();
     const {
       seller_id,
@@ -104,6 +111,11 @@ export async function POST(req: NextRequest) {
         { error: "seller_id, name, and price are required" },
         { status: 400 }
       );
+    }
+
+    // Ensure the seller_id matches the authenticated seller's ID
+    if (seller_id !== sellerId) {
+      return NextResponse.json({ error: "Unauthorized to create products for this seller" }, { status: 403 });
     }
 
     if (useMock) {

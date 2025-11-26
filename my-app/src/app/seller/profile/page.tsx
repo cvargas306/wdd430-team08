@@ -20,15 +20,10 @@ interface Product {
 interface Seller {
   seller_id: string;
   name: string;
-  category: string;
-  description: string;
-  location: string;
-  rating: number;
-  reviews: number;
-  years_active: number;
-  followers: number;
-  image?: string;
   email: string;
+  bio?: string | null;
+  profile_image?: string | null;
+  birthday?: string | null;
   created_at: string;
 }
 
@@ -59,7 +54,7 @@ const mockProducts: Product[] = [
   },
 ];
 
-const useMock = process.env.NODE_ENV === 'development';
+const useMock = false;
 
 export default function SellerProfilePage() {
   const { user, isLoading } = useAuth();
@@ -76,43 +71,34 @@ export default function SellerProfilePage() {
   });
 
   useEffect(() => {
-    if (!isLoading && (!user || !user.is_seller)) {
+    if (!isLoading && !user) {
       router.push("/");
       return;
     }
 
-    if (user && user.is_seller) {
+    if (user) {
       fetchSellerData();
       fetchProducts();
     }
   }, [user, isLoading, router]);
 
   const fetchSellerData = async () => {
-    if (!user?.seller_id) return;
+    if (!user) return;
 
     if (useMock) {
       // Mock seller data
       setSeller({
         seller_id: user.seller_id,
         name: user.name,
-        category: "Ceramics & Pottery",
-        description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
-        location: "Portland, Oregon",
-        rating: 4.9,
-        reviews: 324,
-        years_active: 5,
-        followers: 2840,
         email: user.email,
+        bio: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
+        profile_image: null,
+        birthday: null,
         created_at: "2020-01-01T00:00:00Z",
       });
     } else {
-      try {
-        const res = await fetch(`/api/sellers/${user.seller_id}`);
-        const data = await res.json();
-        setSeller(data);
-      } catch (error) {
-        console.error("Error fetching seller:", error);
-      }
+      // Use user data directly since it contains seller info
+      setSeller(user);
     }
   };
 
@@ -151,9 +137,13 @@ export default function SellerProfilePage() {
       setShowAddProduct(false);
     } else {
       try {
+        const token = localStorage.getItem('token');
         const res = await fetch("/api/products", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({
             seller_id: user.seller_id,
             name: newProduct.name,
@@ -177,8 +167,8 @@ export default function SellerProfilePage() {
     return <div style={{ textAlign: "center", padding: "2rem" }}>Loading...</div>;
   }
 
-  if (!user || !user.is_seller) {
-    return <div style={{ textAlign: "center", padding: "2rem" }}>Access denied. Please login as a seller.</div>;
+  if (!user) {
+    return <div style={{ textAlign: "center", padding: "2rem" }}>Access denied. Please login.</div>;
   }
 
   return (
@@ -219,22 +209,20 @@ export default function SellerProfilePage() {
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
               <div>
-                <strong>Category:</strong> {seller.category}
+                <strong>Email:</strong> {seller.email}
               </div>
               <div>
-                <strong>Location:</strong> {seller.location}
+                <strong>Member Since:</strong> {new Date(seller.created_at).toLocaleDateString()}
               </div>
-              <div>
-                <strong>Rating:</strong> ⭐ {seller.rating} ({seller.reviews} reviews)
-              </div>
-              <div>
-                <strong>Followers:</strong> {seller.followers.toLocaleString()}
-              </div>
-              <div>
-                <strong>Years Active:</strong> {seller.years_active}
-              </div>
+              {seller.birthday && (
+                <div>
+                  <strong>Birthday:</strong> {new Date(seller.birthday).toLocaleDateString()}
+                </div>
+              )}
             </div>
-            <p style={{ marginTop: "1rem", lineHeight: "1.6" }}>{seller.description}</p>
+            {seller.bio && (
+              <p style={{ marginTop: "1rem", lineHeight: "1.6" }}>{seller.bio}</p>
+            )}
           </div>
         </section>
       )}

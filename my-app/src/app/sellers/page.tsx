@@ -62,7 +62,7 @@ const mockSellers: Seller[] = [
   },
 ];
 
-const useMock = true; // Set to false in production to fetch from database
+const useMock = false; // Fetch from database
 
 export default function SellersPage() {
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -77,10 +77,19 @@ export default function SellersPage() {
       const fetchSellers = async () => {
         try {
           const res = await fetch("/api/sellers");
-          const data: Seller[] = await res.json();
-          setSellers(data);
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setSellers(data);
+          } else {
+            console.error("Expected array of sellers, got:", data);
+            setSellers([]);
+          }
         } catch (error) {
           console.error("Error fetching sellers:", error);
+          setSellers([]);
         }
       };
       fetchSellers();

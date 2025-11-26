@@ -32,6 +32,8 @@ export default function SignupPage() {
     yearsActive: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -52,14 +54,15 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
 
     if (formData.password.length < 6) {
-      alert("Password must be at least 6 characters long");
+      setError("Password must be at least 6 characters long");
       return;
     }
 
@@ -89,15 +92,17 @@ export default function SignupPage() {
       });
 
       if (response.ok) {
-        alert("Account created successfully! Please log in.");
-        router.push("/login");
+        setSuccess(true);
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
       } else {
-        const error = await response.json();
-        alert(error.error || "Signup failed");
+        const errorData = await response.json();
+        setError(errorData.error || "Signup failed");
       }
     } catch (error) {
       console.error("Signup error:", error);
-      alert("Signup failed. Please try again.");
+      setError("Signup failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +140,37 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{
+            backgroundColor: "#ffe6e6",
+            color: "#d32f2f",
+            padding: "1rem",
+            borderRadius: "8px",
+            marginBottom: "1.5rem",
+            border: "1px solid #ffcdd2",
+            textAlign: "center",
+            fontSize: "0.9rem"
+          }}>
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div style={{
+            backgroundColor: "#e8f5e8",
+            color: "#2e7d32",
+            padding: "1rem",
+            borderRadius: "8px",
+            marginBottom: "1.5rem",
+            border: "1px solid #c8e6c9",
+            textAlign: "center",
+            fontSize: "0.9rem"
+          }}>
+            Account created successfully! Redirecting to login...
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ opacity: success ? 0.6 : 1, pointerEvents: success ? 'none' : 'auto' }}>
           {/* Account Type */}
           <div style={{ marginBottom: "2rem" }}>
             <label style={{
