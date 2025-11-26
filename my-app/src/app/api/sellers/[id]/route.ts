@@ -37,9 +37,9 @@ interface Seller {
 }
 
 // GET: fetch a specific seller
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (useMock) {
       const seller = mockSellers.find(s => s.seller_id === id);
@@ -62,9 +62,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // PUT: update a seller
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { name, category, description, location, rating, reviews, years_active, followers, image, email } = body;
 
@@ -86,9 +86,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE: delete a seller
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const deletedSeller: Seller[] = await sql<Seller[]>`
       DELETE FROM sellers
