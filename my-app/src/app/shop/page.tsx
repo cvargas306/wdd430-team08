@@ -1,72 +1,70 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Filters from "@/app/components/shop/Filters";
+import ProductCard, { Product } from "@/app/components/shop/ProductCard";
 
-interface Seller {
-  seller_id: string;
-  name: string;
-  email: string;
-  created_at: string;
-}
-
-export default function SellersPage() {
-  const [sellers, setSellers] = useState<Seller[]>([]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+export default function ShopPage() {
+  const [sort, setSort] = useState("feature");
+  const [category, setCategory] = useState("all");
+  const [price, setPrice] = useState([0, 500]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const fetchSellers = async () => {
-      try {
-        const res = await fetch("/api/sellers");
-        const data: Seller[] = await res.json();
-        setSellers(data);
-      } catch (error) {
-        console.error("Error fetching sellers:", error);
-      }
-    };
-    fetchSellers();
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((d) => setProducts(d));
   }, []);
 
-  const addSeller = async () => {
-    if (!name || !email) return alert("Name and email are required!");
-
-    try {
-      const res = await fetch("/api/sellers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          password_hash: "testhash123",
-        }),
-      });
-      const newSeller: Seller = await res.json();
-      setSellers([newSeller, ...sellers]);
-      setName("");
-      setEmail("");
-    } catch (error) {
-      console.error("Error adding seller:", error);
-    }
-  };
-
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Sellers</h1>
-      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
-        <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <button onClick={addSeller}>Add Seller</button>
+    <div className="px-6 sm:px-10 lg:px-20 pt-20 pb-20 min-h-screen bg-isabelline text-ebony">
+
+      {/* TITLE */}
+      <h1 className="text-5xl font-serif text-cafe mb-3">Artisan Products</h1>
+
+      <p className="text-reseda text-base mb-8 max-w-2xl">
+        Browse our curated collection of handcrafted items from independent creators worldwide
+      </p>
+
+      {/* MAIN RESPONSIVE LAYOUT */}
+      <div className="flex flex-col lg:flex-row gap-10">
+
+        {/* FILTERS */}
+        <aside className="w-full lg:w-[380px]">
+          <Filters
+            sort={sort}
+            setSort={setSort}
+            category={category}
+            setCategory={setCategory}
+            price={price}
+            setPrice={setPrice}
+          />
+        </aside>
+
+        {/* PRODUCTS */}
+        <div className="flex-1">
+
+          <p className="text-chocolate text-sm mb-4">
+            Showing {products.length} products
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+            {products.map((p) => (
+              <ProductCard key={p.product_id} product={p} />
+            ))}
+          </div>
+
+        </div>
+
       </div>
-      <ul>
-        {sellers.map((seller) => (
-          <li key={seller.seller_id}>
-            {seller.name} - {seller.email} - {new Date(seller.created_at).toLocaleString()}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
+
+
+
+
+
 
 
 

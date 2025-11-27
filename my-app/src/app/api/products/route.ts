@@ -1,141 +1,41 @@
-import { NextRequest, NextResponse } from "next/server";
-import postgres from "postgres";
+import { NextResponse } from "next/server";
 
-const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
-
-const useMock = process.env.NODE_ENV === 'development';
-
-const mockProducts: Product[] = [
-  {
-    product_id: "1",
-    seller_id: "1",
-    name: "Handcrafted Ceramic Mug",
-    description: "Beautiful hand-thrown mug with organic glaze",
-    price: 45.00,
-    quantity: 10,
-    image_url: "/placeholder-image.jpg",
-    category: "Ceramics & Pottery",
-    created_at: "2023-01-01T00:00:00Z",
-    updated_at: "2023-01-01T00:00:00Z",
-  },
-  {
-    product_id: "2",
-    seller_id: "1",
-    name: "Ceramic Bowl Set",
-    description: "Set of 4 nesting bowls",
-    price: 120.00,
-    quantity: 5,
-    image_url: "/placeholder-image.jpg",
-    category: "Ceramics & Pottery",
-    created_at: "2023-02-01T00:00:00Z",
-    updated_at: "2023-02-01T00:00:00Z",
-  },
-];
-
-interface Product {
-  product_id: string;
-  seller_id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  quantity: number;
-  image_url: string | null;
-  category: string | null;
-  created_at: string;
-  updated_at: string;
+export async function GET() {
+  return NextResponse.json([
+    {
+      product_id: 1,
+      name: "Handwoven Ceramic Bowl",
+      price: 85,
+      seller: "Clay & Light Studio",
+      rating: 4.7,
+      reviews: 124,
+      category: "Ceramics",
+      image_url:
+        "https://res.cloudinary.com/dtqr67txk/image/upload/v1764206396/ceramic-bowl-img_d4kz0q.png",
+    },
+    {
+      product_id: 2,
+      name: "Organic Linen Throw Pillow",
+      price: 65,
+      seller: "Sustainable Textile Co",
+      rating: 4.5,
+      reviews: 98,
+      category: "Textiles",
+      image_url:
+        "https://res.cloudinary.com/dtqr67txk/image/upload/v1764206410/linen-pillow-img_mcpy75.png",
+    },
+    {
+      product_id: 3,
+      name: "Artisan Wood Cutting Board",
+      price: 95,
+      seller: "Forest & Grain Workshop",
+      rating: 4.8,
+      reviews: 156,
+      category: "Woodcraft",
+      image_url:
+        "https://res.cloudinary.com/dtqr67txk/image/upload/v1764206406/cutting-board-img_xzmlgq.png",
+    }
+  ]);
 }
 
-/* ---------------------------------------------
-    GET: Fetch all products or filter by seller_id
- ---------------------------------------------- */
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const sellerId = searchParams.get('seller_id');
 
-    if (useMock) {
-      let products = mockProducts;
-      if (sellerId) {
-        products = mockProducts.filter(p => p.seller_id === sellerId);
-      }
-      return NextResponse.json(products, { status: 200 });
-    } else {
-      let products;
-      if (sellerId) {
-        products = await sql<Product[]>`
-          SELECT *
-          FROM products
-          WHERE seller_id = ${sellerId}
-          ORDER BY created_at DESC
-        `;
-      } else {
-        products = await sql<Product[]>`
-          SELECT *
-          FROM products
-          ORDER BY created_at DESC
-        `;
-      }
-
-      return NextResponse.json(products, { status: 200 });
-    }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-/* ---------------------------------------------
-    POST: Create a new product
- ---------------------------------------------- */
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const {
-      seller_id,
-      name,
-      description,
-      price,
-      quantity,
-      image_url,
-      category,
-    } = body;
-
-    if (!seller_id || !name || !price) {
-      return NextResponse.json(
-        { error: "seller_id, name, and price are required" },
-        { status: 400 }
-      );
-    }
-
-    if (useMock) {
-      const newProduct: Product = {
-        product_id: Date.now().toString(),
-        seller_id,
-        name,
-        description: description || null,
-        price: Number(price),
-        quantity: Number(quantity) || 0,
-        image_url: image_url || null,
-        category: category || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      mockProducts.push(newProduct);
-      return NextResponse.json(newProduct, { status: 201 });
-    } else {
-      const newProduct = await sql<Product[]>`
-        INSERT INTO products (
-          seller_id, name, description, price, quantity, image_url, category
-        )
-        VALUES (
-          ${seller_id}, ${name}, ${description}, ${price}, ${quantity},
-          ${image_url}, ${category}
-        )
-        RETURNING *
-      `;
-
-      return NextResponse.json(newProduct[0], { status: 201 });
-    }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}

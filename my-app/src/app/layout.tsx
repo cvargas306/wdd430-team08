@@ -1,3 +1,4 @@
+import "@/app/globals.css"
 import type { Metadata } from "next";
 import { Playfair_Display, Roboto } from "next/font/google";
 import Footer from "./components/footer/footer"
