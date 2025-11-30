@@ -33,9 +33,12 @@ export default function ProductCard({ product }: { product: Product }) {
       </span>
 
       {/* HEART */}
-      <button className="absolute top-3 right-3 bg-white/80 p-1 rounded-full shadow z-20">
-        <Heart size={18} className="text-cafe" />
-      </button>
+      <button 
+  className="absolute top-3 right-3 bg-white/80 p-1 rounded-full shadow z-20"
+  aria-label="Add to favorites"
+>
+  <Heart size={18} className="text-cafe" />
+</button>
 
       {/* IMAGE */}
       {product.image_url ? (
