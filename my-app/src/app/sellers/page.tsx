@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Seller {
   seller_id: string;
   name: string;
+  slug: string;
   category: string;
   description: string;
   location: string;
@@ -21,6 +23,7 @@ const mockSellers: Seller[] = [
   {
     seller_id: "1",
     name: "Clay & Light Studio",
+    slug: "clay-light-studio",
     category: "Ceramics & Pottery",
     description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
     location: "Santa Fe, New Mexico",
@@ -35,6 +38,7 @@ const mockSellers: Seller[] = [
   {
     seller_id: "2",
     name: "Sustainable Textiles Co",
+    slug: "sustainable-textiles-co",
     category: "Organic Textiles",
     description: "Produces premium organic linens and hand-dyed fabrics through zero-waste methods.",
     location: "Portland, Oregon",
@@ -49,6 +53,7 @@ const mockSellers: Seller[] = [
   {
     seller_id: "3",
     name: "Forest & Grain Workshop",
+    slug: "forest-grain-workshop",
     category: "Woodcraft",
     description: "Offers reclaimed and sustainably sourced wooden home and kitchen products.",
     location: "Asheville, North Carolina",
@@ -62,9 +67,10 @@ const mockSellers: Seller[] = [
   },
 ];
 
-const useMock = true; // Set to false in production to fetch from database
+const useMock = false; // Set to false in production to fetch from database
 
 export default function SellersPage() {
+  const router = useRouter();
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -91,9 +97,11 @@ export default function SellersPage() {
     if (!name || !email) return alert("Name and email are required!");
 
     if (useMock) {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const newSeller: Seller = {
         seller_id: Date.now().toString(),
         name,
+        slug,
         category: "New Category",
         description: "New description",
         location: "New Location",
@@ -276,20 +284,22 @@ export default function SellersPage() {
                 <span>{seller.years_active} years active</span>
                 <span>{seller.followers.toLocaleString()} followers</span>
               </div>
-              <button style={{
-                width: "100%",
-                padding: "0.75rem",
-                backgroundColor: "#8b5a3c",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "1rem",
-                fontWeight: "bold",
-                cursor: "pointer",
-                transition: "background-color 0.2s"
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6b4f3a"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#8b5a3c"}
+              <button
+                onClick={() => router.push(`/sellers/${seller.slug}`)}
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  backgroundColor: "#8b5a3c",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "1rem",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6b4f3a"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#8b5a3c"}
               >
                 Visit Shop
               </button>

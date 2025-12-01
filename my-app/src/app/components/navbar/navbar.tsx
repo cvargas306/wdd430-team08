@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import styles from "./navbar.module.css";
-import { Menu, X, User, ShoppingBag, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Navbar() {
@@ -34,7 +34,6 @@ export default function Navbar() {
 
       {/* Desktop icons */}
       <div className={styles.icons}>
-        <ShoppingBag size={22} />
         {isLoading ? (
           <User size={22} />
         ) : user ? (
@@ -78,7 +77,6 @@ export default function Navbar() {
         </ul>
 
         <div className={styles.mobileIcons}>
-          <ShoppingBag size={22} />
           {isLoading ? (
             <User size={22} />
           ) : user ? (

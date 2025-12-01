@@ -1,107 +1,83 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
+import { withErrorHandler, requireSeller } from "@/lib/error-handler";
+import { validateData, updateSellerSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-const useMock = process.env.NODE_ENV === 'development';
+async function getSeller(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
-const mockSellers = [
-  {
-    seller_id: "1",
-    name: "Clay & Light Studio",
-    category: "Ceramics & Pottery",
-    description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
-    location: "Portland, Oregon",
-    rating: 4.9,
-    reviews: 324,
-    years_active: 5,
-    followers: 2840,
-    email: "claylight@example.com",
-    created_at: "2020-01-01T00:00:00Z",
-  },
-];
+  const sellers = await sql`
+    SELECT seller_id, user_id, name, slug, category, description, location, rating, reviews, years_active, followers, image, created_at
+    FROM sellers
+    WHERE seller_id = ${id} OR slug = ${id}
+  `;
 
-interface Seller {
-  seller_id: string;
-  name: string;
-  category: string;
-  description: string;
-  location: string;
-  rating: number;
-  reviews: number;
-  years_active: number;
-  followers: number;
-  image?: string;
-  email: string;
-  created_at: string;
-}
-
-// GET: fetch a specific seller
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-
-    if (useMock) {
-      const seller = mockSellers.find(s => s.seller_id === id);
-      if (!seller) {
-        return NextResponse.json({ error: "Seller not found" }, { status: 404 });
-      }
-      return NextResponse.json(seller, { status: 200 });
-    } else {
-      const sellers: Seller[] = await sql<Seller[]>`SELECT seller_id, name, category, description, location, rating, reviews, years_active, followers, image, email, created_at FROM sellers WHERE seller_id = ${id}`;
-
-      if (sellers.length === 0) {
-        return NextResponse.json({ error: "Seller not found" }, { status: 404 });
-      }
-
-      return NextResponse.json(sellers[0], { status: 200 });
-    }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (sellers.length === 0) {
+    return NextResponse.json({ error: "Seller not found" }, { status: 404 });
   }
+
+  return NextResponse.json(sellers[0], { status: 200 });
 }
 
-// PUT: update a seller
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
-    const { name, category, description, location, rating, reviews, years_active, followers, image, email } = body;
+async function updateSeller(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = requireSeller(req);
+  const body = await req.json();
 
-    const updatedSeller: Seller[] = await sql<Seller[]>`
-      UPDATE sellers
-      SET name = ${name}, category = ${category}, description = ${description}, location = ${location}, rating = ${rating}, reviews = ${reviews}, years_active = ${years_active}, followers = ${followers}, image = ${image}, email = ${email}
-      WHERE seller_id = ${id}
-      RETURNING seller_id, name, category, description, location, rating, reviews, years_active, followers, image, email, created_at
-    `;
-
-    if (updatedSeller.length === 0) {
-      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(updatedSeller[0], { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const validation = validateData(updateSellerSchema, body);
+  if (!validation.success) {
+    throw validation.errors;
   }
-}
 
-// DELETE: delete a seller
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+  // Check if seller exists and belongs to the user
+  const existingSeller = await sql`
+    SELECT seller_id, user_id FROM sellers WHERE seller_id = ${id} OR slug = ${id}
+  `;
 
-    const deletedSeller: Seller[] = await sql<Seller[]>`
-      DELETE FROM sellers
-      WHERE seller_id = ${id}
-      RETURNING seller_id, name, category, description, location, rating, reviews, years_active, followers, image, email, created_at
-    `;
-
-    if (deletedSeller.length === 0) {
-      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(deletedSeller[0], { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (existingSeller.length === 0) {
+    return NextResponse.json({ error: "Seller not found" }, { status: 404 });
   }
+
+  if (existingSeller[0].user_id !== user.user_id) {
+    return NextResponse.json({ error: "Access denied" }, { status: 403 });
+  }
+
+  const updateData = validation.data;
+
+  const updatedSeller = await sql`
+    UPDATE sellers
+    SET ${sql(updateData)}
+    WHERE seller_id = ${existingSeller[0].seller_id}
+    RETURNING seller_id, user_id, name, slug, category, description, location, rating, reviews, years_active, followers, image, created_at
+  `;
+
+  return NextResponse.json(updatedSeller[0], { status: 200 });
 }
+
+async function deleteSeller(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = requireSeller(req);
+
+  // Check if seller exists and belongs to the user
+  const existingSeller = await sql`
+    SELECT seller_id, user_id FROM sellers WHERE seller_id = ${id} OR slug = ${id}
+  `;
+
+  if (existingSeller.length === 0) {
+    return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+  }
+
+  if (existingSeller[0].user_id !== user.user_id) {
+    return NextResponse.json({ error: "Access denied" }, { status: 403 });
+  }
+
+  await sql`DELETE FROM sellers WHERE seller_id = ${existingSeller[0].seller_id}`;
+
+  return NextResponse.json({ message: "Seller deleted successfully" }, { status: 200 });
+}
+
+export const GET = withErrorHandler(getSeller);
+export const PUT = withErrorHandler(updateSeller);
+export const DELETE = withErrorHandler(deleteSeller);
