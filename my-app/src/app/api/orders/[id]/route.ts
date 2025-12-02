@@ -5,14 +5,19 @@ import { validateData, updateOrderSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-async function updateOrder(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function updateOrder(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
   const user = getUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  let body = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
   const validation = validateData(updateOrderSchema, body);
   if (!validation.success) {

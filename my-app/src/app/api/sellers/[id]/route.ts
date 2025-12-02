@@ -5,8 +5,8 @@ import { validateData, updateSellerSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-async function getSeller(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function getSeller(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
 
   const sellers = await sql`
     SELECT seller_id, user_id, name, slug, category, description, location, rating, reviews, years_active, followers, image, created_at
@@ -21,10 +21,19 @@ async function getSeller(req: NextRequest, { params }: { params: Promise<{ id: s
   return NextResponse.json(sellers[0], { status: 200 });
 }
 
-async function updateSeller(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function updateSeller(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
   const user = requireSeller(req);
-  const body = await req.json();
+  if (!user) {
+    return NextResponse.json({ error: "Seller access required" }, { status: 403 });
+  }
+  const safeUser = user;
+  let body = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
   const validation = validateData(updateSellerSchema, body);
   if (!validation.success) {
@@ -46,9 +55,22 @@ async function updateSeller(req: NextRequest, { params }: { params: Promise<{ id
 
   const updateData = validation.data;
 
+  const setFields = Object.entries(updateData)
+    .filter(([_, value]) => value !== undefined)
+    .map(([key, value]) => sql`${sql(key)} = ${value}`);
+
+  if (setFields.length === 0) {
+    return NextResponse.json(
+      { error: "No fields provided for update" },
+      { status: 400 }
+    );
+  }
+
+  const updateSet = setFields.reduce((acc, field, index) => index === 0 ? field : sql`${acc}, ${field}`);
+
   const updatedSeller = await sql`
     UPDATE sellers
-    SET ${sql(updateData)}
+    SET ${updateSet}
     WHERE seller_id = ${existingSeller[0].seller_id}
     RETURNING seller_id, user_id, name, slug, category, description, location, rating, reviews, years_active, followers, image, created_at
   `;
@@ -56,9 +78,13 @@ async function updateSeller(req: NextRequest, { params }: { params: Promise<{ id
   return NextResponse.json(updatedSeller[0], { status: 200 });
 }
 
-async function deleteSeller(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function deleteSeller(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
   const user = requireSeller(req);
+  if (!user) {
+    return NextResponse.json({ error: "Seller access required" }, { status: 403 });
+  }
+  const safeUser = user;
 
   // Check if seller exists and belongs to the user
   const existingSeller = await sql`
@@ -69,7 +95,7 @@ async function deleteSeller(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Seller not found" }, { status: 404 });
   }
 
-  if (existingSeller[0].user_id !== user.user_id) {
+  if (existingSeller[0].user_id !== safeUser.user_id) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 

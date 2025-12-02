@@ -94,7 +94,7 @@ export function getUserFromRequest(req: NextRequest) {
 export function requireSeller(req: NextRequest) {
   const user = getUserFromRequest(req);
   if (!user || user.role !== 'seller') {
-    throw new Error('Seller access required');
+    return null;
   }
   return user;
 }

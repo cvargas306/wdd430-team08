@@ -5,8 +5,8 @@ import { validateData, updateProductSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-async function getProduct(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function getProduct(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
 
   const products = await sql`
     SELECT p.id as product_id, p.name, p.price, p.description, p.images, p.stock, p.created_at, p.updated_at,
@@ -25,10 +25,18 @@ async function getProduct(req: NextRequest, { params }: { params: Promise<{ id: 
   return NextResponse.json(products[0], { status: 200 });
 }
 
-async function updateProduct(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function updateProduct(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
   const user = requireSeller(req);
-  const body = await req.json();
+  if (!user) {
+    return NextResponse.json({ error: "Seller access required" }, { status: 403 });
+  }
+  let body = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
   const validation = validateData(updateProductSchema, body);
   if (!validation.success) {
@@ -36,6 +44,19 @@ async function updateProduct(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   const updateData = validation.data;
+
+  const setFields = Object.entries(updateData)
+    .filter(([_, value]) => value !== undefined)
+    .map(([key, value]) => sql`${sql(key)} = ${value}`);
+
+  if (setFields.length === 0) {
+    return NextResponse.json(
+      { error: "No fields provided for update" },
+      { status: 400 }
+    );
+  }
+
+  const updateSet = setFields.reduce((acc, field, index) => index === 0 ? field : sql`${acc}, ${field}`);
 
   // Check if product exists and belongs to the seller
   const existingProduct = await sql`
@@ -52,7 +73,7 @@ async function updateProduct(req: NextRequest, { params }: { params: Promise<{ i
 
   const product = await sql`
     UPDATE products
-    SET ${sql(updateData)}, updated_at = CURRENT_TIMESTAMP
+    SET ${updateSet}, updated_at = CURRENT_TIMESTAMP
     WHERE id = ${id}
     RETURNING id, name, description, price, category_id, images, stock, updated_at
   `;
@@ -60,9 +81,12 @@ async function updateProduct(req: NextRequest, { params }: { params: Promise<{ i
   return NextResponse.json(product[0], { status: 200 });
 }
 
-async function deleteProduct(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function deleteProduct(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
   const user = requireSeller(req);
+  if (!user) {
+    return NextResponse.json({ error: "Seller access required" }, { status: 403 });
+  }
 
   // Check if product exists and belongs to the seller
   const existingProduct = await sql`

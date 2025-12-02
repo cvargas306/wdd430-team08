@@ -4,9 +4,13 @@ import { withErrorHandler, requireSeller } from "@/lib/error-handler";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-async function getSellerAnalytics(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function getSellerAnalytics(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
   const user = requireSeller(req);
+  if (!user) {
+    return NextResponse.json({ error: "Seller access required" }, { status: 403 });
+  }
+  const safeUser = user;
 
   // Check if seller exists and belongs to the user
   const existingSeller = await sql`
@@ -17,7 +21,7 @@ async function getSellerAnalytics(req: NextRequest, { params }: { params: Promis
     return NextResponse.json({ error: "Seller not found" }, { status: 404 });
   }
 
-  if (existingSeller[0].seller_id !== user.seller_id) {
+  if (existingSeller[0].seller_id !== safeUser.seller_id) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 

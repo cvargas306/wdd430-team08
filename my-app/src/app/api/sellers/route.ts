@@ -15,7 +15,12 @@ async function getSellers(req: NextRequest) {
 }
 
 async function createSeller(req: NextRequest) {
-  const body = await req.json();
+  let body = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
   const validation = validateData(createSellerSchema, body);
   if (!validation.success) {
