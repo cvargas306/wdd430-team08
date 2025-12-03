@@ -1,8 +1,42 @@
+"use client";
+
 import styles from "./page.module.css";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Home() {
+  const [heroImageSrc, setHeroImageSrc] = useState("https://ik.imagekit.io/fara1dandara/main-home-img.png");
+  const [ceramicImageSrc, setCeramicImageSrc] = useState("https://ik.imagekit.io/fara1dandara/ceramic-bowl-img.png");
+  const [linenImageSrc, setLinenImageSrc] = useState("https://ik.imagekit.io/fara1dandara/linen-pillow-img.png");
+  const [cuttingBoardImageSrc, setCuttingBoardImageSrc] = useState("https://ik.imagekit.io/fara1dandara/cutting-board-img.png");
+
+  const handleImageError = (imageType: string) => (event: any) => {
+    const fallbackMap: { [key: string]: string } = {
+      hero: "/main-home-img.png",
+      ceramic: "/ceramic-bowl-img.png",
+      linen: "/linen-pillow-img.png",
+      cuttingBoard: "/cutting-board-img.png"
+    };
+
+    const currentSrc = event.target.src;
+    if (currentSrc.startsWith('http') && fallbackMap[imageType]) {
+      switch (imageType) {
+        case 'hero':
+          setHeroImageSrc(fallbackMap.hero);
+          break;
+        case 'ceramic':
+          setCeramicImageSrc(fallbackMap.ceramic);
+          break;
+        case 'linen':
+          setLinenImageSrc(fallbackMap.linen);
+          break;
+        case 'cuttingBoard':
+          setCuttingBoardImageSrc(fallbackMap.cuttingBoard);
+          break;
+      }
+    }
+  };
   return (
     <main className={styles.main}>
       {/* Hero Section */}
@@ -23,19 +57,20 @@ export default function Home() {
               <Link href="/shop" className={styles.primaryButton}>
                 Start Exploring
               </Link>
-              <Link href="/sellers" className={styles.secondaryButton}>
+              <Link href="/signup?type=seller" className={styles.secondaryButton}>
                 Become a Seller
               </Link>
             </div>
           </div>
           <div className={styles.heroImage}>
             <Image
-    src="/main-home-img.png"
+    src={heroImageSrc}
     alt="Handcrafted artisan products showcase"
     width={600}
     height={500}
     priority
     className={styles.heroImageElement}
+    onError={handleImageError('hero')}
   />
           </div>
         </div>
@@ -79,11 +114,12 @@ export default function Home() {
           <div className={styles.itemCard}>
             <div className={styles.itemImage}>
               <Image
-                src="/ceramic-bowl-img.png"
+                src={ceramicImageSrc}
                 alt="Handmade Ceramic Bowl by Sarah Chen"
                 width={400}
                 height={280}
                 className={styles.productImage}
+                onError={handleImageError('ceramic')}
               />
             </div>
             <div className={styles.itemInfo}>
@@ -96,11 +132,12 @@ export default function Home() {
           <div className={styles.itemCard}>
             <div className={styles.itemImage}>
               <Image
-                src="/linen-pillow-img.png"
+                src={linenImageSrc}
                 alt="Organic Linen Throw Pillow & Macrame Weave"
                 width={400}
                 height={280}
                 className={styles.productImage}
+                onError={handleImageError('linen')}
               />
             </div>
             <div className={styles.itemInfo}>
@@ -113,11 +150,12 @@ export default function Home() {
           <div className={styles.itemCard}>
             <div className={styles.itemImage}>
               <Image
-                src="/cutting-board-img.png"
+                src={cuttingBoardImageSrc}
                 alt="Artisan Wood-Latticed Cutting Board"
                 width={400}
                 height={280}
                 className={styles.productImage}
+                onError={handleImageError('cuttingBoard')}
               />
             </div>
             <div className={styles.itemInfo}>

@@ -1,17 +1,27 @@
+"use client";
+
 import styles from "./about.module.css";
 import Image from "next/image";
-
+import { useState } from "react";
 
 export default function StorySection() {
+  const [storyImageSrc, setStoryImageSrc] = useState("https://ik.imagekit.io/fara1dandara/story-section-image.webp");
+
+  const handleImageError = () => {
+    if (storyImageSrc.startsWith('http')) {
+      setStoryImageSrc("/story-section-image.webp");
+    }
+  };
   return (
     <section className={styles.story}>
       <div className={styles.storyImage}>
          <Image
-          src="/story-section-image.webp"
+          src={storyImageSrc}
           alt="story-section"
           width={400}
           height={400}
           className={styles.logo}
+          onError={handleImageError}
         />
       </div>
 

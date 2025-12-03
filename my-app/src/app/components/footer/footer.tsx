@@ -1,8 +1,19 @@
+"use client";
+
 import { Mail, Phone, MapPin, Facebook, Instagram, X } from "lucide-react";
 import styles from "./footer.module.css";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Footer() {
+  const [logoSrc, setLogoSrc] = useState("https://ik.imagekit.io/fara1dandara/logo-loom1.png"); // Try external first
+
+  const handleLogoError = () => {
+    // If external image fails, fallback to local
+    if (logoSrc.startsWith('http')) {
+      setLogoSrc("/logo-loom1.png");
+    }
+  };
   return (
     <footer className={styles.footer}>
       <div className={styles.container}>
@@ -11,10 +22,11 @@ export default function Footer() {
           <div className={styles.column}>
             <div className={styles.logo}>
               <Image
-                src="/logo-loom1.png"
+                src={logoSrc}
                 alt="Loom & Thread Logo"
                 width={100}
                 height={100}
+                onError={handleLogoError}
               />
             </div>
             <p className={styles.text}>
@@ -29,7 +41,7 @@ export default function Footer() {
             <h3 className={styles.title}>Community</h3>
             <ul className={styles.linkList}>
               <li>
-                <a href="#">Become a Seller</a>
+                <a href="/signup?type=seller">Become a Seller</a>
               </li>
               <li>
                 <a href="#">About Us</a>

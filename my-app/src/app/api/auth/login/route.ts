@@ -1,33 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
+import { setAuthCookies, hashPassword, verifyPassword } from "@/lib/auth";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
-
-const useMock = process.env.NODE_ENV === 'development';
-
-interface User {
-  user_id: string;
-  email: string;
-  name: string;
-  is_seller: boolean;
-  seller_id?: string;
-}
-
-const mockUsers: User[] = [
-  {
-    user_id: "1",
-    email: "seller@example.com",
-    name: "Clay & Light Studio",
-    is_seller: true,
-    seller_id: "1",
-  },
-  {
-    user_id: "2",
-    email: "buyer@example.com",
-    name: "John Buyer",
-    is_seller: false,
-  },
-];
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,30 +12,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    if (useMock) {
-      // Mock authentication
-      const user = mockUsers.find(u => u.email === email);
-      if (user && password === "password") { // Simple mock password
-        return NextResponse.json(user, { status: 200 });
-      } else {
-        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-      }
-    } else {
-      // Production: Check database
-      const users = await sql`
-        SELECT u.user_id, u.email, u.name, u.is_seller, s.seller_id
-        FROM users u
-        LEFT JOIN sellers s ON u.email = s.email
-        WHERE u.email = ${email} AND u.password_hash = crypt(${password}, u.password_hash)
-      `;
+    // Check database
+    const users = await sql`
+      SELECT u.user_id, u.email, u.name, u.is_seller, u.password_hash, s.seller_id
+      FROM users u
+      LEFT JOIN sellers s ON u.user_id = s.user_id
+      WHERE u.email = ${email}
+    `;
 
-      if (users.length === 0) {
-        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-      }
-
-      return NextResponse.json(users[0], { status: 200 });
+    if (users.length === 0) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
+
+    const user = users[0];
+
+    // Verify password
+    const isValidPassword = await verifyPassword(password, user.password_hash);
+    if (!isValidPassword) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    // Create user payload for JWT
+    const userPayload = {
+      user_id: user.user_id,
+      email: user.email,
+      name: user.name,
+      is_seller: user.is_seller,
+      seller_id: user.seller_id || undefined,
+    };
+
+    // Set HTTP-only cookies with JWT tokens
+    await setAuthCookies(userPayload);
+
+    // Return user data (without sensitive info)
+    return NextResponse.json({
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        name: user.name,
+        is_seller: user.is_seller,
+        seller_id: user.seller_id,
+      }
+    }, { status: 200 });
+
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Login error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

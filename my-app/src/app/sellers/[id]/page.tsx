@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "../../components/auth/AuthContext";
-import { useRouter } from "next/navigation";
-import ImageUpload from "../../components/ImageUpload";
+import { useRouter, useParams } from "next/navigation";
 
 interface Product {
   product_id: string;
   name: string;
   description: string | null;
   price: number;
-  stock: number;
+  quantity: number;
   image_url: string | null;
   category: string | null;
+  created_at: string;
   rating?: number;
   reviews?: number;
 }
@@ -20,6 +20,7 @@ interface Product {
 interface Seller {
   seller_id: string;
   name: string;
+  slug: string;
   category: string;
   description: string;
   location: string;
@@ -28,55 +29,64 @@ interface Seller {
   years_active: number;
   followers: number;
   image?: string;
+  email: string;
   created_at: string;
 }
 
 
 export default function SellerProfilePage() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const sellerId = params.id as string;
   const [seller, setSeller] = useState<Seller | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [editingSellerImage, setEditingSellerImage] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
     price: "",
-    stock: "",
+    quantity: "",
     category: "",
-    images: [] as string[],
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const isOwner = user && seller && user.seller_id === seller.seller_id;
 
   useEffect(() => {
-    if (!isLoading && (!user || !user.is_seller)) {
-      router.push("/");
-      return;
-    }
-
-    if (user && user.is_seller) {
+    if (sellerId) {
       fetchSellerData();
+    }
+  }, [sellerId]);
+
+  useEffect(() => {
+    if (seller) {
       fetchProducts();
     }
-  }, [user, isLoading, router]);
+  }, [seller]);
 
   const fetchSellerData = async () => {
-    if (!user?.seller_id) return;
-
+    setLoading(true);
     try {
-      const res = await fetch(`/api/sellers/${user.seller_id}`);
-      const data = await res.json();
-      setSeller(data);
+      const res = await fetch(`/api/sellers/${sellerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSeller(data);
+      } else {
+        setError("Seller not found");
+      }
     } catch (error) {
       console.error("Error fetching seller:", error);
+      setError("Error loading seller");
     }
+    setLoading(false);
   };
 
   const fetchProducts = async () => {
-    if (!user?.seller_id) return;
-
+    if (!seller) return;
     try {
-      const res = await fetch(`/api/products?seller_id=${user.seller_id}`);
+      const res = await fetch(`/api/products?seller_id=${seller.seller_id}`);
       const data = await res.json();
       setProducts(data);
     } catch (error) {
@@ -84,55 +94,37 @@ export default function SellerProfilePage() {
     }
   };
 
-  const updateSellerImage = async (imageUrl: string) => {
-    if (!user?.seller_id) return;
-
-    try {
-      const res = await fetch(`/api/sellers/${user.seller_id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageUrl }),
-      });
-      const updatedSeller = await res.json();
-      setSeller(updatedSeller);
-      setEditingSellerImage(false);
-    } catch (error) {
-      console.error("Error updating seller image:", error);
-    }
-  };
-
   const addProduct = async () => {
-    if (!user?.seller_id || !newProduct.name || !newProduct.price) return;
+    if (!isOwner || !newProduct.name || !newProduct.price) return;
 
     try {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          seller_id: user.seller_id,
+          seller_id: seller.seller_id,
           name: newProduct.name,
           description: newProduct.description,
           price: parseFloat(newProduct.price),
-          stock: parseInt(newProduct.stock) || 0,
+          stock: parseInt(newProduct.quantity) || 0,
           category: newProduct.category,
-          images: newProduct.images,
         }),
       });
       const product = await res.json();
       setProducts([product, ...products]);
-      setNewProduct({ name: "", description: "", price: "", stock: "", category: "", images: [] });
+      setNewProduct({ name: "", description: "", price: "", quantity: "", category: "" });
       setShowAddProduct(false);
     } catch (error) {
       console.error("Error adding product:", error);
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return <div style={{ textAlign: "center", padding: "2rem" }}>Loading...</div>;
   }
 
-  if (!user || !user.is_seller) {
-    return <div style={{ textAlign: "center", padding: "2rem" }}>Access denied. Please login as a seller.</div>;
+  if (error || !seller) {
+    return <div style={{ textAlign: "center", padding: "2rem" }}>{error || "Seller not found"}</div>;
   }
 
   return (
@@ -145,7 +137,7 @@ export default function SellerProfilePage() {
           marginBottom: "1rem",
           color: "#4a2f1b"
         }}>
-          Seller Dashboard
+          {seller.name}
         </h1>
         <p style={{
           fontSize: "1.2rem",
@@ -153,117 +145,82 @@ export default function SellerProfilePage() {
           margin: "0 auto",
           lineHeight: "1.6"
         }}>
-          Manage your products and view your seller profile.
+          Discover unique handcrafted items from this artisan.
         </p>
       </section>
 
       {/* Seller Info */}
-      {seller && (
-        <section style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{
-            backgroundColor: "#fefefe",
-            border: "1px solid #e0d5c8",
-            borderRadius: "12px",
-            padding: "2rem",
-            marginBottom: "2rem",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.1)"
-          }}>
-            <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: "2rem", marginBottom: "1rem" }}>
-              {seller.name}
-            </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-              <div>
-                <strong>Category:</strong> {seller.category}
-              </div>
-              <div>
-                <strong>Location:</strong> {seller.location}
-              </div>
-              <div>
-                <strong>Rating:</strong> ⭐ {seller.rating} ({seller.reviews} reviews)
-              </div>
-              <div>
-                <strong>Followers:</strong> {seller.followers.toLocaleString()}
-              </div>
-              <div>
-                <strong>Years Active:</strong> {seller.years_active}
-              </div>
+      <section style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
+        <div style={{
+          backgroundColor: "#fefefe",
+          border: "1px solid #e0d5c8",
+          borderRadius: "12px",
+          padding: "2rem",
+          marginBottom: "2rem",
+          boxShadow: "0 4px 8px rgba(0,0,0,0.1)"
+        }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+            <div>
+              <strong>Category:</strong> {seller.category}
             </div>
-            <p style={{ marginTop: "1rem", lineHeight: "1.6" }}>{seller.description}</p>
-            {seller.image && (
-              <img
-                src={seller.image}
-                alt="Seller Profile"
-                style={{
-                  width: "100px",
-                  height: "100px",
-                  borderRadius: "50%",
-                  marginTop: "1rem",
-                  objectFit: "cover"
-                }}
-              />
-            )}
+            <div>
+              <strong>Location:</strong> {seller.location}
+            </div>
+            <div>
+              <strong>Rating:</strong> ⭐ {seller.rating} ({seller.reviews} reviews)
+            </div>
+            <div>
+              <strong>Followers:</strong> {seller.followers.toLocaleString()}
+            </div>
+            <div>
+              <strong>Years Active:</strong> {seller.years_active}
+            </div>
+          </div>
+          <p style={{ marginTop: "1rem", lineHeight: "1.6" }}>{seller.description}</p>
+          {isOwner && (
             <button
-              onClick={() => setEditingSellerImage(true)}
+              onClick={() => router.push("/seller/profile")}
               style={{
-                padding: "0.5rem 1rem",
+                marginTop: "1rem",
+                padding: "0.75rem 1.5rem",
                 backgroundColor: "#8b5a3c",
                 color: "#ffffff",
                 border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                marginTop: "1rem"
+                borderRadius: "8px",
+                fontSize: "1rem",
+                fontWeight: "bold",
+                cursor: "pointer"
               }}
             >
-              {seller.image ? "Update Profile Image" : "Add Profile Image"}
+              Manage Profile
             </button>
-            {editingSellerImage && (
-              <div style={{ marginTop: "1rem" }}>
-                <ImageUpload
-                  onImageUpload={updateSellerImage}
-                  currentImage={seller.image}
-                  onRemove={() => updateSellerImage("")}
-                />
-                <button
-                  onClick={() => setEditingSellerImage(false)}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    backgroundColor: "transparent",
-                    color: "#4a2f1b",
-                    border: "1px solid #4a2f1b",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    marginTop: "0.5rem"
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+      </section>
 
       {/* Products Section */}
       <section style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
           <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: "2rem" }}>
-            Your Products ({products.length})
+            Products ({products.length})
           </h2>
-          <button
-            onClick={() => setShowAddProduct(true)}
-            style={{
-              padding: "0.75rem 1.5rem",
-              backgroundColor: "#8b5a3c",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "1rem",
-              fontWeight: "bold",
-              cursor: "pointer"
-            }}
-          >
-            Add New Product
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => setShowAddProduct(true)}
+              style={{
+                padding: "0.75rem 1.5rem",
+                backgroundColor: "#8b5a3c",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "1rem",
+                fontWeight: "bold",
+                cursor: "pointer"
+              }}
+            >
+              Add New Product
+            </button>
+          )}
         </div>
 
         <div style={{
@@ -310,10 +267,10 @@ export default function SellerProfilePage() {
               </p>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#8b5a3c" }}>
-                  ${Number(product.price ?? 0).toFixed(2)}
+                  ${product.price.toFixed(2)}
                 </span>
                 <span style={{ fontSize: "0.9rem", color: "#6b4f3a" }}>
-                  Stock: {product.stock}
+                  Stock: {product.quantity}
                 </span>
               </div>
               {product.rating && (
@@ -321,13 +278,32 @@ export default function SellerProfilePage() {
                   ⭐ {product.rating} ({product.reviews} reviews)
                 </div>
               )}
+              {!isOwner && (
+                <button
+                  style={{
+                    width: "100%",
+                    marginTop: "1rem",
+                    padding: "0.75rem",
+                    backgroundColor: "#8b5a3c",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => router.push(`/product/${product.product_id}`)}
+                >
+                  View Product
+                </button>
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* Add Product Modal */}
-      {showAddProduct && (
+      {/* Add Product Modal - Only for owner */}
+      {isOwner && showAddProduct && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -393,9 +369,9 @@ export default function SellerProfilePage() {
               />
               <input
                 type="number"
-                placeholder="Stock"
-                value={newProduct.stock}
-                onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
+                placeholder="Quantity"
+                value={newProduct.quantity}
+                onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
                 style={{
                   width: '100%',
                   padding: '0.5rem',
@@ -417,14 +393,6 @@ export default function SellerProfilePage() {
                   borderRadius: '4px'
                 }}
               />
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Product Image:</label>
-                <ImageUpload
-                  onImageUpload={(url) => setNewProduct({ ...newProduct, images: [url] })}
-                  currentImage={newProduct.images[0]}
-                  onRemove={() => setNewProduct({ ...newProduct, images: [] })}
-                />
-              </div>
               <button
                 type="submit"
                 style={{

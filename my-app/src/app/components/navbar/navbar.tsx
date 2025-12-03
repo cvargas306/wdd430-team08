@@ -3,23 +3,32 @@
 import { useState } from "react";
 import Image from "next/image";
 import styles from "./navbar.module.css";
-import { Menu, X, User, ShoppingBag, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [logoSrc, setLogoSrc] = useState("https://ik.imagekit.io/fara1dandara/logo-loom-white1.png"); // Try external first
   const { user, logout, isLoading } = useAuth();
+
+  const handleLogoError = () => {
+    // If external image fails, fallback to local
+    if (logoSrc.startsWith('http')) {
+      setLogoSrc("/logo-loom-white1.png");
+    }
+  };
 
   return (
     <nav className={styles.navbar}>
       {/* Logo */}
       <div className={styles.logo}>
         <Image
-          src="/logo-loom-white1.png"
+          src={logoSrc}
           alt="Logo"
           width={100}
           height={100}
           className={styles.logo}
+          onError={handleLogoError}
         />
       </div>
 
@@ -34,7 +43,6 @@ export default function Navbar() {
 
       {/* Desktop icons */}
       <div className={styles.icons}>
-        <ShoppingBag size={22} />
         {isLoading ? (
           <User size={22} />
         ) : user ? (
@@ -78,7 +86,6 @@ export default function Navbar() {
         </ul>
 
         <div className={styles.mobileIcons}>
-          <ShoppingBag size={22} />
           {isLoading ? (
             <User size={22} />
           ) : user ? (
