@@ -60,7 +60,12 @@ async function getProducts(req: NextRequest) {
     ORDER BY ${orderBy}
   `;
 
-  return NextResponse.json(products, { status: 200 });
+  const formattedProducts = products.map(p => ({
+    ...p,
+    price: Number(p.price)
+  }));
+
+  return NextResponse.json(formattedProducts, { status: 200 });
 }
 
 async function createProduct(req: NextRequest) {

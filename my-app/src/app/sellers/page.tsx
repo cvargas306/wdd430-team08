@@ -19,129 +19,25 @@ interface Seller {
   created_at: string;
 }
 
-const mockSellers: Seller[] = [
-  {
-    seller_id: "1",
-    name: "Clay & Light Studio",
-    slug: "clay-light-studio",
-    category: "Ceramics & Pottery",
-    description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
-    location: "Santa Fe, New Mexico",
-    rating: 4.9,
-    reviews: 324,
-    years_active: 5,
-    followers: 2840,
-    image: "/placeholder-image.jpg", // placeholder
-    email: "claylight@example.com",
-    created_at: "2020-01-01T00:00:00Z",
-  },
-  {
-    seller_id: "2",
-    name: "Sustainable Textiles Co",
-    slug: "sustainable-textiles-co",
-    category: "Organic Textiles",
-    description: "Produces premium organic linens and hand-dyed fabrics through zero-waste methods.",
-    location: "Portland, Oregon",
-    rating: 4.8,
-    reviews: 287,
-    years_active: 3,
-    followers: 1920,
-    image: "/placeholder-image.jpg",
-    email: "sustainable@example.com",
-    created_at: "2021-01-01T00:00:00Z",
-  },
-  {
-    seller_id: "3",
-    name: "Forest & Grain Workshop",
-    slug: "forest-grain-workshop",
-    category: "Woodcraft",
-    description: "Offers reclaimed and sustainably sourced wooden home and kitchen products.",
-    location: "Asheville, North Carolina",
-    rating: 4.7,
-    reviews: 412,
-    years_active: 7,
-    followers: 3650,
-    image: "/placeholder-image.jpg",
-    email: "forestgrain@example.com",
-    created_at: "2017-01-01T00:00:00Z",
-  },
-];
-
-const useMock = false; // Set to false in production to fetch from database
 
 export default function SellersPage() {
   const router = useRouter();
   const [sellers, setSellers] = useState<Seller[]>([]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
-    if (useMock) {
-      setSellers(mockSellers);
-    } else {
-      const fetchSellers = async () => {
-        try {
-          const res = await fetch("/api/sellers");
-          const data: Seller[] = await res.json();
-          setSellers(data);
-        } catch (error) {
-          console.error("Error fetching sellers:", error);
-        }
-      };
-      fetchSellers();
-    }
+    const fetchSellers = async () => {
+      try {
+        const res = await fetch("/api/sellers");
+        const data: Seller[] = await res.json();
+        setSellers(data);
+      } catch (error) {
+        console.error("Error fetching sellers:", error);
+      }
+    };
+    fetchSellers();
   }, []);
 
-  const addSeller = async () => {
-    if (!name || !email) return alert("Name and email are required!");
-
-    if (useMock) {
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const newSeller: Seller = {
-        seller_id: Date.now().toString(),
-        name,
-        slug,
-        category: "New Category",
-        description: "New description",
-        location: "New Location",
-        rating: 0,
-        reviews: 0,
-        years_active: 0,
-        followers: 0,
-        email,
-        created_at: new Date().toISOString(),
-      };
-      setSellers([newSeller, ...sellers]);
-      setName("");
-      setEmail("");
-    } else {
-      try {
-        const res = await fetch("/api/sellers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name,
-            category: "New Category",
-            description: "New description",
-            location: "New Location",
-            rating: 0,
-            reviews: 0,
-            years_active: 0,
-            followers: 0,
-            email,
-            password_hash: "testhash123",
-          }),
-        });
-        const newSeller: Seller = await res.json();
-        setSellers([newSeller, ...sellers]);
-        setName("");
-        setEmail("");
-      } catch (error) {
-        console.error("Error adding seller:", error);
-      }
-    }
-  };
 
   return (
     <div style={{ backgroundColor: "#ffffff", color: "#4a2f1b", fontFamily: "var(--font-roboto)", minHeight: "100vh" }}>
@@ -285,7 +181,7 @@ export default function SellersPage() {
                 <span>{seller.followers.toLocaleString()} followers</span>
               </div>
               <button
-                onClick={() => router.push(`/sellers/${seller.slug}`)}
+                onClick={() => router.push(`/sellers/${seller.seller_id}`)}
                 style={{
                   width: "100%",
                   padding: "0.75rem",
@@ -308,32 +204,6 @@ export default function SellersPage() {
         </div>
       </section>
 
-      {/* Admin Add Seller Form - Hidden in production */}
-      {useMock && (
-        <section style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto", borderTop: "1px solid #e0d5c8" }}>
-          <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: "2rem", marginBottom: "1rem" }}>Add New Seller (Dev Only)</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            <input
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={{ padding: "0.5rem", border: "1px solid #4a2f1b", borderRadius: "4px" }}
-            />
-            <input
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ padding: "0.5rem", border: "1px solid #4a2f1b", borderRadius: "4px" }}
-            />
-            <button
-              onClick={addSeller}
-              style={{ padding: "0.5rem 1rem", backgroundColor: "#4a2f1b", color: "#ffffff", border: "none", borderRadius: "4px", cursor: "pointer" }}
-            >
-              Add Seller
-            </button>
-          </div>
-        </section>
-      )}
     </div>
   );
 }

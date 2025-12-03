@@ -33,109 +33,6 @@ interface Seller {
   created_at: string;
 }
 
-const mockSellersData: Record<string, Seller> = {
-  "clay-light-studio": {
-    seller_id: "1",
-    name: "Clay & Light Studio",
-    slug: "clay-light-studio",
-    category: "Ceramics & Pottery",
-    description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
-    location: "Santa Fe, New Mexico",
-    rating: 4.9,
-    reviews: 324,
-    years_active: 5,
-    followers: 2840,
-    email: "claylight@example.com",
-    created_at: "2020-01-01T00:00:00Z",
-  },
-  "sustainable-textiles-co": {
-    seller_id: "2",
-    name: "Sustainable Textiles Co",
-    slug: "sustainable-textiles-co",
-    category: "Organic Textiles",
-    description: "Produces premium organic linens and hand-dyed fabrics through zero-waste methods.",
-    location: "Portland, Oregon",
-    rating: 4.8,
-    reviews: 287,
-    years_active: 3,
-    followers: 1920,
-    email: "sustainable@example.com",
-    created_at: "2021-01-01T00:00:00Z",
-  },
-  "forest-grain-workshop": {
-    seller_id: "3",
-    name: "Forest & Grain Workshop",
-    slug: "forest-grain-workshop",
-    category: "Woodcraft",
-    description: "Offers reclaimed and sustainably sourced wooden home and kitchen products.",
-    location: "Asheville, North Carolina",
-    rating: 4.7,
-    reviews: 412,
-    years_active: 7,
-    followers: 3650,
-    email: "forestgrain@example.com",
-    created_at: "2017-01-01T00:00:00Z",
-  },
-};
-
-const mockProducts: Record<string, Product[]> = {
-  "clay-light-studio": [
-    {
-      product_id: "1",
-      name: "Handcrafted Ceramic Mug",
-      description: "Beautiful hand-thrown mug with organic glaze",
-      price: 45.00,
-      quantity: 10,
-      image_url: "/placeholder-image.jpg",
-      category: "Ceramics & Pottery",
-      created_at: "2023-01-01T00:00:00Z",
-      rating: 4.8,
-      reviews: 12,
-    },
-    {
-      product_id: "2",
-      name: "Ceramic Bowl Set",
-      description: "Set of 4 nesting bowls",
-      price: 120.00,
-      quantity: 5,
-      image_url: "/placeholder-image.jpg",
-      category: "Ceramics & Pottery",
-      created_at: "2023-02-01T00:00:00Z",
-      rating: 4.9,
-      reviews: 8,
-    },
-  ],
-  "sustainable-textiles-co": [
-    {
-      product_id: "3",
-      name: "Organic Linen Pillow",
-      description: "Premium organic linen pillow, hand-dyed using zero-waste methods.",
-      price: 65.00,
-      quantity: 15,
-      image_url: "/placeholder-image.jpg",
-      category: "Organic Textiles",
-      created_at: "2023-03-01T00:00:00Z",
-      rating: 4.7,
-      reviews: 20,
-    },
-  ],
-  "forest-grain-workshop": [
-    {
-      product_id: "4",
-      name: "Wooden Cutting Board",
-      description: "Handcrafted cutting board from sustainably sourced wood.",
-      price: 95.00,
-      quantity: 8,
-      image_url: "/placeholder-image.jpg",
-      category: "Woodcraft",
-      created_at: "2023-04-01T00:00:00Z",
-      rating: 4.9,
-      reviews: 15,
-    },
-  ],
-};
-
-const useMock = process.env.NODE_ENV === 'development';
 
 export default function SellerProfilePage() {
   const { user } = useAuth();
@@ -171,85 +68,54 @@ export default function SellerProfilePage() {
 
   const fetchSellerData = async () => {
     setLoading(true);
-    if (useMock) {
-      // Mock seller data - fetch based on slug
-      const mockSeller = mockSellersData[sellerId];
-      if (mockSeller) {
-        setSeller(mockSeller);
+    try {
+      const res = await fetch(`/api/sellers/${sellerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSeller(data);
       } else {
         setError("Seller not found");
       }
-      setLoading(false);
-    } else {
-      try {
-        const res = await fetch(`/api/sellers/${sellerId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSeller(data);
-        } else {
-          setError("Seller not found");
-        }
-      } catch (error) {
-        console.error("Error fetching seller:", error);
-        setError("Error loading seller");
-      }
-      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching seller:", error);
+      setError("Error loading seller");
     }
+    setLoading(false);
   };
 
   const fetchProducts = async () => {
     if (!seller) return;
-    if (useMock) {
-      setProducts(mockProducts[sellerId] || []);
-    } else {
-      try {
-        const res = await fetch(`/api/products?seller_id=${seller.seller_id}`);
-        const data = await res.json();
-        setProducts(data);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      }
+    try {
+      const res = await fetch(`/api/products?seller_id=${seller.seller_id}`);
+      const data = await res.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
     }
   };
 
   const addProduct = async () => {
     if (!isOwner || !newProduct.name || !newProduct.price) return;
 
-    if (useMock) {
-      const product: Product = {
-        product_id: Date.now().toString(),
-        name: newProduct.name,
-        description: newProduct.description,
-        price: parseFloat(newProduct.price),
-        quantity: parseInt(newProduct.quantity) || 0,
-        image_url: null,
-        category: newProduct.category,
-        created_at: new Date().toISOString(),
-      };
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seller_id: seller.seller_id,
+          name: newProduct.name,
+          description: newProduct.description,
+          price: parseFloat(newProduct.price),
+          stock: parseInt(newProduct.quantity) || 0,
+          category: newProduct.category,
+        }),
+      });
+      const product = await res.json();
       setProducts([product, ...products]);
       setNewProduct({ name: "", description: "", price: "", quantity: "", category: "" });
       setShowAddProduct(false);
-    } else {
-      try {
-        const res = await fetch("/api/products", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            seller_id: seller.seller_id,
-            name: newProduct.name,
-            description: newProduct.description,
-            price: parseFloat(newProduct.price),
-            stock: parseInt(newProduct.quantity) || 0,
-            category: newProduct.category,
-          }),
-        });
-        const product = await res.json();
-        setProducts([product, ...products]);
-        setNewProduct({ name: "", description: "", price: "", quantity: "", category: "" });
-        setShowAddProduct(false);
-      } catch (error) {
-        console.error("Error adding product:", error);
-      }
+    } catch (error) {
+      console.error("Error adding product:", error);
     }
   };
 

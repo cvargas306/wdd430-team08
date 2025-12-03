@@ -5,8 +5,28 @@ import { validateData, updateSellerSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-async function getSeller(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+/* ------------------------------------------
+ * Helper: Remove undefined values recursively
+ * ------------------------------------------ */
+function removeUndefined(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined);
+  }
+  if (obj !== null && typeof obj === "object") {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, removeUndefined(v)])
+    );
+  }
+  return obj;
+}
+
+/* ------------------------------------------
+ * GET seller by ID or slug
+ * ------------------------------------------ */
+async function getSeller(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
 
   const sellers = await sql`
     SELECT seller_id, user_id, name, slug, category, description, location, rating, reviews, years_active, followers, image, created_at
@@ -18,19 +38,22 @@ async function getSeller(req: NextRequest, { params }: { params: { id: string } 
     return NextResponse.json({ error: "Seller not found" }, { status: 404 });
   }
 
-  return NextResponse.json(sellers[0], { status: 200 });
+  return NextResponse.json(removeUndefined(sellers[0]), { status: 200 });
 }
 
-async function updateSeller(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+/* ------------------------------------------
+ * UPDATE seller
+ * ------------------------------------------ */
+async function updateSeller(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const user = requireSeller(req);
   if (!user) {
     return NextResponse.json({ error: "Seller access required" }, { status: 403 });
   }
-  const safeUser = user;
+
   let body = {};
   try {
-    body = await req.json();
+    body = removeUndefined(await req.json());
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -56,17 +79,16 @@ async function updateSeller(req: NextRequest, { params }: { params: { id: string
   const updateData = validation.data;
 
   const setFields = Object.entries(updateData)
-    .filter(([_, value]) => value !== undefined)
+    .filter(([_, value]) => value !== undefined && value !== null)
     .map(([key, value]) => sql`${sql(key)} = ${value}`);
 
   if (setFields.length === 0) {
-    return NextResponse.json(
-      { error: "No fields provided for update" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "No fields provided for update" }, { status: 400 });
   }
 
-  const updateSet = setFields.reduce((acc, field, index) => index === 0 ? field : sql`${acc}, ${field}`);
+  const updateSet = setFields.reduce((acc, field, index) =>
+    index === 0 ? field : sql`${acc}, ${field}`
+  );
 
   const updatedSeller = await sql`
     UPDATE sellers
@@ -75,18 +97,19 @@ async function updateSeller(req: NextRequest, { params }: { params: { id: string
     RETURNING seller_id, user_id, name, slug, category, description, location, rating, reviews, years_active, followers, image, created_at
   `;
 
-  return NextResponse.json(updatedSeller[0], { status: 200 });
+  return NextResponse.json(removeUndefined(updatedSeller[0]), { status: 200 });
 }
 
-async function deleteSeller(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+/* ------------------------------------------
+ * DELETE seller
+ * ------------------------------------------ */
+async function deleteSeller(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const user = requireSeller(req);
   if (!user) {
     return NextResponse.json({ error: "Seller access required" }, { status: 403 });
   }
-  const safeUser = user;
 
-  // Check if seller exists and belongs to the user
   const existingSeller = await sql`
     SELECT seller_id, user_id FROM sellers WHERE seller_id = ${id} OR slug = ${id}
   `;
@@ -95,7 +118,7 @@ async function deleteSeller(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Seller not found" }, { status: 404 });
   }
 
-  if (existingSeller[0].user_id !== safeUser.user_id) {
+  if (existingSeller[0].user_id !== user.user_id) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
@@ -104,6 +127,9 @@ async function deleteSeller(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ message: "Seller deleted successfully" }, { status: 200 });
 }
 
+/* ------------------------------------------
+ * Export routes with error handler
+ * ------------------------------------------ */
 export const GET = withErrorHandler(getSeller);
 export const PUT = withErrorHandler(updateSeller);
 export const DELETE = withErrorHandler(deleteSeller);

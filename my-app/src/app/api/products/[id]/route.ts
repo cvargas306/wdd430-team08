@@ -22,7 +22,12 @@ async function getProduct(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
 
-  return NextResponse.json(products[0], { status: 200 });
+  const product = {
+    ...products[0],
+    price: Number(products[0].price)
+  };
+
+  return NextResponse.json(product, { status: 200 });
 }
 
 async function updateProduct(req: NextRequest, { params }: { params: { id: string } }) {

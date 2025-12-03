@@ -241,7 +241,12 @@ const ProductPage = () => {
               </div>
             </div>
 
-            <p className="mb-4 text-2xl font-semibold text-chocolate">${product.price.toFixed(2)}</p>
+            <p className="mb-4 text-2xl font-semibold text-chocolate">
+              {(() => {
+                console.log("PRICE:", product.price, typeof product.price);
+                return `$${Number(product.price ?? 0).toFixed(2)}`;
+              })()}
+            </p>
 
             <div className="mb-6">
               <p className="mb-2 text-sm text-reseda">Sold by: {product.seller_name}</p>
@@ -295,7 +300,12 @@ const ProductPage = () => {
                 />
                 <h3 className="mb-1 font-medium truncate text-ebony">{relatedProduct.name}</h3>
                 <p className="mb-1 text-sm text-reseda">by {relatedProduct.seller_name}</p>
-                <p className="font-semibold text-chocolate">${relatedProduct.price.toFixed(2)}</p>
+                <p className="font-semibold text-chocolate">
+                  {(() => {
+                    console.log("RELATED PRICE:", relatedProduct.price, typeof relatedProduct.price);
+                    return `$${Number(relatedProduct.price ?? 0).toFixed(2)}`;
+                  })()}
+                </p>
               </div>
             ))}
           </div>
