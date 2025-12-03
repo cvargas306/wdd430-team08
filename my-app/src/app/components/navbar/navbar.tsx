@@ -8,18 +8,27 @@ import { useAuth } from "../auth/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [logoSrc, setLogoSrc] = useState("https://ik.imagekit.io/fara1dandara/logo-loom-white1.png"); // Try external first
   const { user, logout, isLoading } = useAuth();
+
+  const handleLogoError = () => {
+    // If external image fails, fallback to local
+    if (logoSrc.startsWith('http')) {
+      setLogoSrc("/logo-loom-white1.png");
+    }
+  };
 
   return (
     <nav className={styles.navbar}>
       {/* Logo */}
       <div className={styles.logo}>
         <Image
-          src="/logo-loom-white1.png"
+          src={logoSrc}
           alt="Logo"
           width={100}
           height={100}
           className={styles.logo}
+          onError={handleLogoError}
         />
       </div>
 
