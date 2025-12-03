@@ -41,7 +41,7 @@ export default function Footer() {
             <h3 className={styles.title}>Community</h3>
             <ul className={styles.linkList}>
               <li>
-                <a href="#">Become a Seller</a>
+                <a href="/signup?type=seller">Become a Seller</a>
               </li>
               <li>
                 <a href="#">About Us</a>

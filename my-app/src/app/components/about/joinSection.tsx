@@ -1,4 +1,5 @@
 import styles from "./about.module.css";
+import Link from "next/link";
 
 export default function JoinSection() {
   return (
@@ -11,8 +12,8 @@ export default function JoinSection() {
       </p>
 
       <div className={styles.joinButtons}>
-        <button className={styles.btnLight}>Become a Seller</button>
-        <button className={styles.btnDark}>Shop Products</button>
+        <Link href="/signup?type=seller" className={styles.btnLight}>Become a Seller</Link>
+        <Link href="/shop" className={styles.btnDark}>Shop Products</Link>
       </div>
     </section>
   );

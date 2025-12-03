@@ -57,7 +57,7 @@ export default function Home() {
               <Link href="/shop" className={styles.primaryButton}>
                 Start Exploring
               </Link>
-              <Link href="/sellers" className={styles.secondaryButton}>
+              <Link href="/signup?type=seller" className={styles.secondaryButton}>
                 Become a Seller
               </Link>
             </div>

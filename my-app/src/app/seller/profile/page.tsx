@@ -3,16 +3,16 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../components/auth/AuthContext";
 import { useRouter } from "next/navigation";
+import ImageUpload from "../../components/ImageUpload";
 
 interface Product {
   product_id: string;
   name: string;
   description: string | null;
   price: number;
-  quantity: number;
+  stock: number;
   image_url: string | null;
   category: string | null;
-  created_at: string;
   rating?: number;
   reviews?: number;
 }
@@ -28,38 +28,9 @@ interface Seller {
   years_active: number;
   followers: number;
   image?: string;
-  email: string;
   created_at: string;
 }
 
-const mockProducts: Product[] = [
-  {
-    product_id: "1",
-    name: "Handcrafted Ceramic Mug",
-    description: "Beautiful hand-thrown mug with organic glaze",
-    price: 45.00,
-    quantity: 10,
-    image_url: "/placeholder-image.jpg",
-    category: "Ceramics & Pottery",
-    created_at: "2023-01-01T00:00:00Z",
-    rating: 4.8,
-    reviews: 12,
-  },
-  {
-    product_id: "2",
-    name: "Ceramic Bowl Set",
-    description: "Set of 4 nesting bowls",
-    price: 120.00,
-    quantity: 5,
-    image_url: "/placeholder-image.jpg",
-    category: "Ceramics & Pottery",
-    created_at: "2023-02-01T00:00:00Z",
-    rating: 4.9,
-    reviews: 8,
-  },
-];
-
-const useMock = process.env.NODE_ENV === 'development';
 
 export default function SellerProfilePage() {
   const { user, isLoading } = useAuth();
@@ -67,12 +38,14 @@ export default function SellerProfilePage() {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [editingSellerImage, setEditingSellerImage] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
     price: "",
-    quantity: "",
+    stock: "",
     category: "",
+    images: [] as string[],
   });
 
   useEffect(() => {
@@ -90,86 +63,67 @@ export default function SellerProfilePage() {
   const fetchSellerData = async () => {
     if (!user?.seller_id) return;
 
-    if (useMock) {
-      // Mock seller data
-      setSeller({
-        seller_id: user.seller_id,
-        name: user.name,
-        category: "Ceramics & Pottery",
-        description: "Specializes in handcrafted ceramic pieces featuring earth-inspired glazes.",
-        location: "Portland, Oregon",
-        rating: 4.9,
-        reviews: 324,
-        years_active: 5,
-        followers: 2840,
-        email: user.email,
-        created_at: "2020-01-01T00:00:00Z",
-      });
-    } else {
-      try {
-        const res = await fetch(`/api/sellers/${user.seller_id}`);
-        const data = await res.json();
-        setSeller(data);
-      } catch (error) {
-        console.error("Error fetching seller:", error);
-      }
+    try {
+      const res = await fetch(`/api/sellers/${user.seller_id}`);
+      const data = await res.json();
+      setSeller(data);
+    } catch (error) {
+      console.error("Error fetching seller:", error);
     }
   };
 
   const fetchProducts = async () => {
     if (!user?.seller_id) return;
 
-    if (useMock) {
-      setProducts(mockProducts);
-    } else {
-      try {
-        const res = await fetch(`/api/products?seller_id=${user.seller_id}`);
-        const data = await res.json();
-        setProducts(data);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      }
+    try {
+      const res = await fetch(`/api/products?seller_id=${user.seller_id}`);
+      const data = await res.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+  };
+
+  const updateSellerImage = async (imageUrl: string) => {
+    if (!user?.seller_id) return;
+
+    try {
+      const res = await fetch(`/api/sellers/${user.seller_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageUrl }),
+      });
+      const updatedSeller = await res.json();
+      setSeller(updatedSeller);
+      setEditingSellerImage(false);
+    } catch (error) {
+      console.error("Error updating seller image:", error);
     }
   };
 
   const addProduct = async () => {
     if (!user?.seller_id || !newProduct.name || !newProduct.price) return;
 
-    if (useMock) {
-      const product: Product = {
-        product_id: Date.now().toString(),
-        name: newProduct.name,
-        description: newProduct.description,
-        price: parseFloat(newProduct.price),
-        quantity: parseInt(newProduct.quantity) || 0,
-        image_url: null,
-        category: newProduct.category,
-        created_at: new Date().toISOString(),
-      };
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seller_id: user.seller_id,
+          name: newProduct.name,
+          description: newProduct.description,
+          price: parseFloat(newProduct.price),
+          stock: parseInt(newProduct.stock) || 0,
+          category: newProduct.category,
+          images: newProduct.images,
+        }),
+      });
+      const product = await res.json();
       setProducts([product, ...products]);
-      setNewProduct({ name: "", description: "", price: "", quantity: "", category: "" });
+      setNewProduct({ name: "", description: "", price: "", stock: "", category: "", images: [] });
       setShowAddProduct(false);
-    } else {
-      try {
-        const res = await fetch("/api/products", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            seller_id: user.seller_id,
-            name: newProduct.name,
-            description: newProduct.description,
-            price: parseFloat(newProduct.price),
-            quantity: parseInt(newProduct.quantity) || 0,
-            category: newProduct.category,
-          }),
-        });
-        const product = await res.json();
-        setProducts([product, ...products]);
-        setNewProduct({ name: "", description: "", price: "", quantity: "", category: "" });
-        setShowAddProduct(false);
-      } catch (error) {
-        console.error("Error adding product:", error);
-      }
+    } catch (error) {
+      console.error("Error adding product:", error);
     }
   };
 
@@ -235,6 +189,56 @@ export default function SellerProfilePage() {
               </div>
             </div>
             <p style={{ marginTop: "1rem", lineHeight: "1.6" }}>{seller.description}</p>
+            {seller.image && (
+              <img
+                src={seller.image}
+                alt="Seller Profile"
+                style={{
+                  width: "100px",
+                  height: "100px",
+                  borderRadius: "50%",
+                  marginTop: "1rem",
+                  objectFit: "cover"
+                }}
+              />
+            )}
+            <button
+              onClick={() => setEditingSellerImage(true)}
+              style={{
+                padding: "0.5rem 1rem",
+                backgroundColor: "#8b5a3c",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                marginTop: "1rem"
+              }}
+            >
+              {seller.image ? "Update Profile Image" : "Add Profile Image"}
+            </button>
+            {editingSellerImage && (
+              <div style={{ marginTop: "1rem" }}>
+                <ImageUpload
+                  onImageUpload={updateSellerImage}
+                  currentImage={seller.image}
+                  onRemove={() => updateSellerImage("")}
+                />
+                <button
+                  onClick={() => setEditingSellerImage(false)}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "transparent",
+                    color: "#4a2f1b",
+                    border: "1px solid #4a2f1b",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    marginTop: "0.5rem"
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -306,10 +310,10 @@ export default function SellerProfilePage() {
               </p>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#8b5a3c" }}>
-                  ${product.price.toFixed(2)}
+                  ${Number(product.price ?? 0).toFixed(2)}
                 </span>
                 <span style={{ fontSize: "0.9rem", color: "#6b4f3a" }}>
-                  Stock: {product.quantity}
+                  Stock: {product.stock}
                 </span>
               </div>
               {product.rating && (
@@ -389,9 +393,9 @@ export default function SellerProfilePage() {
               />
               <input
                 type="number"
-                placeholder="Quantity"
-                value={newProduct.quantity}
-                onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
+                placeholder="Stock"
+                value={newProduct.stock}
+                onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
                 style={{
                   width: '100%',
                   padding: '0.5rem',
@@ -413,6 +417,14 @@ export default function SellerProfilePage() {
                   borderRadius: '4px'
                 }}
               />
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Product Image:</label>
+                <ImageUpload
+                  onImageUpload={(url) => setNewProduct({ ...newProduct, images: [url] })}
+                  currentImage={newProduct.images[0]}
+                  onRemove={() => setNewProduct({ ...newProduct, images: [] })}
+                />
+              </div>
               <button
                 type="submit"
                 style={{

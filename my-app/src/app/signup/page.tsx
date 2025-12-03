@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 interface SignupData {
@@ -19,13 +19,16 @@ interface SignupData {
   yearsActive?: string;
 }
 
-export default function SignupPage() {
+function SignupForm() {
+  const searchParams = useSearchParams();
+  const preSelectSeller = searchParams.get("type") === "seller";
+  
   const [formData, setFormData] = useState<SignupData>({
     email: "",
     password: "",
     confirmPassword: "",
     name: "",
-    isSeller: false,
+    isSeller: preSelectSeller,
     category: "",
     description: "",
     location: "",
@@ -499,5 +502,23 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: "100vh",
+        backgroundColor: "#f9f5f0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <p>Loading...</p>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   );
 }

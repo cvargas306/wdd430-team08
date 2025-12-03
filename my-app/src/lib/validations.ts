@@ -60,6 +60,13 @@ export const updateSellerSchema = z.object({
   image: z.string().url('Invalid image URL').optional(),
 });
 
+// User schemas
+export const updateUserSchema = z.object({
+  name: z.string().min(1, 'Name is required').optional(),
+  email: z.string().email('Invalid email format').optional(),
+  image: z.string().url('Invalid image URL').optional(),
+});
+
 // Order schemas
 export const createOrderSchema = z.object({
   seller_id: z.string().uuid('Invalid seller ID'),
