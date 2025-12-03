@@ -82,8 +82,7 @@ const updateFilters = (newFilters: any) => {
       const term = search.toLowerCase();
       products = products.filter(
         p =>
-          p.name.toLowerCase().includes(term) ||
-          (p.description && p.description.toLowerCase().includes(term))
+          p.name.toLowerCase().includes(term)
       );
     }
 
@@ -156,3 +155,4 @@ const updateFilters = (newFilters: any) => {
     </div>
   );
 }
+
