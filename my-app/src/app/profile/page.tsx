@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../components/auth/AuthContext";
 import { useRouter } from "next/navigation";
+import ImageUpload from "../components/ImageUpload";
 
 interface Order {
   id: string;
@@ -35,6 +36,7 @@ interface User {
   email: string;
   name: string;
   is_seller: boolean;
+  image?: string;
   created_at: string;
 }
 
@@ -50,6 +52,7 @@ const ProfilePage = () => {
   const [settingsForm, setSettingsForm] = useState({
     name: "",
     email: "",
+    image: "",
     currentPassword: "",
     newPassword: "",
   });
@@ -92,7 +95,7 @@ const ProfilePage = () => {
       const res = await fetch("/api/users");
       const data = await res.json();
       setUserData(data);
-      setSettingsForm({ ...settingsForm, name: data.name, email: data.email });
+      setSettingsForm({ ...settingsForm, name: data.name, email: data.email, image: data.image || "" });
       setLoading(false);
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -108,6 +111,7 @@ const ProfilePage = () => {
         body: JSON.stringify({
           name: settingsForm.name,
           email: settingsForm.email,
+          image: settingsForm.image,
         }),
       });
 
@@ -454,6 +458,14 @@ const ProfilePage = () => {
                           border: "1px solid #4a2f1b",
                           borderRadius: "4px"
                         }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: "1rem" }}>
+                      <label style={{ display: "block", marginBottom: "0.5rem" }}>Profile Image:</label>
+                      <ImageUpload
+                        onImageUpload={(url) => setSettingsForm({ ...settingsForm, image: url })}
+                        currentImage={settingsForm.image}
+                        onRemove={() => setSettingsForm({ ...settingsForm, image: "" })}
                       />
                     </div>
                     <div style={{ display: "flex", gap: "1rem" }}>

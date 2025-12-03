@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 import { withErrorHandler, getUserFromRequest } from "@/lib/error-handler";
+import { validateData, updateUserSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
@@ -14,7 +15,7 @@ async function getUser(req: NextRequest) {
   }
 
   const userData = await sql`
-    SELECT user_id, email, name, is_seller, created_at
+    SELECT user_id, email, name, is_seller, image, created_at
     FROM users
     WHERE user_id = ${user.user_id}
   `;
@@ -39,8 +40,12 @@ async function updateUser(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Simple validation for name and email
-  const { name, email } = body as any;
+  const validation = validateData(updateUserSchema, body);
+  if (!validation.success) {
+    return NextResponse.json({ error: "Validation failed", details: validation.errors }, { status: 400 });
+  }
+
+  const { name, email, image } = validation.data;
 
   if (!name || !email) {
     return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
@@ -57,9 +62,9 @@ async function updateUser(req: NextRequest) {
 
   const updatedUser = await sql`
     UPDATE users
-    SET name = ${name}, email = ${email}
+    SET name = ${name}, email = ${email}, image = ${image || null}
     WHERE user_id = ${user.user_id}
-    RETURNING user_id, email, name, is_seller, created_at
+    RETURNING user_id, email, name, is_seller, image, created_at
   `;
 
   return NextResponse.json(updatedUser[0], { status: 200 });
