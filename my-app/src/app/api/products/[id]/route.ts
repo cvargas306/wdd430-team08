@@ -5,30 +5,92 @@ import { validateData, updateProductSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-async function getProduct(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+async function getProductWithReviews(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    // FIX: unwrap params
+    const { id: productId } = await context.params;
 
-  const products = await sql`
-    SELECT p.id as product_id, p.name, p.price, p.description, p.images, p.stock, p.created_at, p.updated_at,
-           s.seller_id, s.name as seller_name, s.rating as seller_rating, s.reviews as seller_reviews,
-           c.name as category
-    FROM products p
-    JOIN sellers s ON p.seller_id = s.seller_id
-    JOIN categories c ON p.category_id = c.id
-    WHERE p.id = ${id}
-  `;
+    if (!productId) {
+      return NextResponse.json(
+        { error: "Missing product ID" },
+        { status: 400 }
+      );
+    }
 
-  if (products.length === 0) {
-    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    // 1️⃣ Fetch product
+    const productResult = await sql`
+      SELECT 
+        p.id AS product_id,
+        p.name,
+        p.description,
+        p.price,
+        p.images,
+        p.stock,
+        s.seller_id,
+        s.name AS seller_name,
+        c.name AS category
+      FROM products p
+      JOIN sellers s ON p.seller_id = s.seller_id
+      JOIN categories c ON p.category_id = c.id
+      WHERE p.id = ${productId}
+      LIMIT 1
+    `;
+
+    if (productResult.length === 0) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    const product = productResult[0];
+
+    // 2️⃣ Fetch reviews
+    const reviews = await sql`
+      SELECT
+        r.review_id,
+        r.rating,
+        r.comment,
+        r.created_at,
+        u.user_id,
+        u.name AS user_name
+      FROM product_reviews r
+      JOIN users u ON r.user_id = u.user_id
+      WHERE r.product_id = ${productId}
+      ORDER BY r.created_at DESC
+    `;
+
+    const avgRating =
+      reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0;
+
+    return NextResponse.json(
+      {
+        product: {
+          ...product,
+          price: Number(product.price),
+          images: product.images || [],
+          rating: Number(avgRating.toFixed(2)),
+          total_reviews: reviews.length,
+        },
+        reviews,
+      },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  const product = {
-    ...products[0],
-    price: Number(products[0].price)
-  };
-
-  return NextResponse.json(product, { status: 200 });
 }
+
 
 async function updateProduct(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
@@ -111,6 +173,9 @@ async function deleteProduct(req: NextRequest, { params }: { params: { id: strin
   return NextResponse.json({ message: "Product deleted successfully" }, { status: 200 });
 }
 
-export const GET = withErrorHandler(getProduct);
+export const GET = (
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) => getProductWithReviews(req, context);
 export const PUT = withErrorHandler(updateProduct);
 export const DELETE = withErrorHandler(deleteProduct);

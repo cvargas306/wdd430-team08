@@ -1,147 +1,245 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Image from "next/image";
-import { Star, Truck, ShieldCheck, RotateCcw, Minus, Plus } from "lucide-react";
+import {
+  Star,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  Minus,
+  Plus,
+  X,
+} from "lucide-react";
 import styles from "./product-detail.module.css";
 
-// TODO: Replace with actual data from database
 interface Review {
-  id: number;
-  userName: string;
+  review_id: string;
+  user_name: string;
   rating: number;
-  date: string;
   comment: string;
+  created_at: string;
 }
 
 interface Product {
-  id: number;
+  product_id: string;
   name: string;
-  seller: string;
+  seller_name: string;
   price: number;
   rating: number;
-  totalReviews: number;
+  total_reviews: number;
   category: string;
   description: string;
-  imageUrl: string;
+  images: string[];
   stock: number;
 }
 
-// MOCK DATA - Replace with database fetch
-const mockProduct: Product = {
-  id: 1,
-  name: "Handwoven Ceramic Bowl",
-  seller: "Clay & Light Studio",
-  price: 85,
-  rating: 4.9,
-  totalReviews: 124,
-  category: "Ceramics",
-  description:
-    "A beautifully handcrafted ceramic bowl made using traditional wheel-throwing techniques. Each piece is uniquely glazed with natural, earth-inspired colors that showcase the artisan's attention to detail.",
-  imageUrl: "/ceramic-bowl-img.png", // Replace with actual image
-  stock: 12,
-};
-
-const mockReviews: Review[] = [
-  {
-    id: 1,
-    userName: "Sarah M.",
-    rating: 5,
-    date: "2024-01-15",
-    comment:
-      "Beautiful and well-crafted! This ceramic bowl is absolutely stunning. The glazing is perfect and it arrived beautifully packaged. Highly recommend this artisan!",
-  },
-  {
-    id: 2,
-    userName: "James T.",
-    rating: 5,
-    date: "2024-01-10",
-    comment:
-      "Exceeded my expectations. I bought this as a gift and the recipient loved it. The quality is exceptional and the attention to detail is remarkable.",
-  },
-];
-
-const ratingDistribution = [
-  { stars: 5, count: 3 },
-  { stars: 4, count: 1 },
-  { stars: 3, count: 0 },
-  { stars: 2, count: 0 },
-  { stars: 1, count: 0 },
-];
-
-export default function ProductDetail() {
+export default function ProductDetailPage() {
+  const { id } = useParams();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const product = mockProduct; // TODO: Fetch from database using product ID from URL
+  // WRITE REVIEW STATE
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [newRating, setNewRating] = useState(0);
+  const [newComment, setNewComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const incrementQuantity = () => {
-    if (quantity < product.stock) {
-      setQuantity(quantity + 1);
+  // Fetch product + reviews
+  const loadProduct = async () => {
+    try {
+      const res = await fetch(`/api/products/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch product");
+
+      const data = await res.json();
+      setProduct(data.product);
+      setReviews(data.reviews);
+    } catch (error) {
+      console.error("Product fetch error:", error);
     }
+    setLoading(false);
   };
 
-  const decrementQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
-    }
-  };
+  useEffect(() => {
+    if (!id) return;
+    loadProduct();
+  }, [id]);
 
-  const handleAddToCart = () => {
-    // TODO: Implement add to cart functionality
-    console.log(`Added ${quantity} items to cart`);
-    alert(`Added ${quantity} ${product.name} to cart!`);
-  };
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className={styles.stars}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={20}
-            className={star <= rating ? styles.starFilled : styles.starEmpty}
-            fill={star <= rating ? "currentColor" : "none"}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const totalRatings = ratingDistribution.reduce(
-    (sum, item) => sum + item.count,
-    0
+  // ⭐ RATING STARS (read-only)
+  const renderStars = (rating: number) => (
+    <div className={styles.stars}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          size={20}
+          className={star <= rating ? styles.starFilled : styles.starEmpty}
+          fill={star <= rating ? "currentColor" : "none"}
+        />
+      ))}
+    </div>
   );
+
+  // ⭐ RATING INPUT (clickable)
+  const renderRatingInput = () => (
+    <div className={styles.stars}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          size={26}
+          className={
+            star <= newRating ? styles.starFilled : styles.starEmpty
+          }
+          fill={star <= newRating ? "currentColor" : "none"}
+          onClick={() => setNewRating(star)}
+          style={{ cursor: "pointer" }}
+        />
+      ))}
+    </div>
+  );
+
+  // SUBMIT REVIEW
+  const submitReview = async () => {
+    if (newRating === 0) {
+      setErrorMsg("Please select a rating.");
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      const res = await fetch(`/api/products/${id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: newRating,
+          comment: newComment,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Failed to submit review");
+        setSubmitting(false);
+        return;
+      }
+
+      // Refresh product info + reviews
+      await loadProduct();
+
+      // Reset modal
+      setSubmitting(false);
+      setShowReviewModal(false);
+      setNewRating(0);
+      setNewComment("");
+
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Something went wrong.");
+    }
+
+    setSubmitting(false);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <main className={styles.main}>
+        <div className={styles.skeletonContainer}>
+          
+          <div className={styles.skeletonImage}></div>
+
+          <div className={styles.skeletonInfo}>
+            <div className={styles.skeletonTitle}></div>
+            <div className={styles.skeletonSmall}></div>
+            <div className={styles.skeletonPrice}></div>
+
+            <div className={styles.skeletonText}></div>
+            <div className={styles.skeletonText}></div>
+
+            <div className={styles.skeletonButton}></div>
+          </div>
+
+        </div>
+      </main>
+    );
+  }
+
+  if (!product) {
+    return (
+      <main className={styles.main}>
+        <p className={styles.error}>Product not found.</p>
+      </main>
+    );
+  }
+
+  // Rating distribution histogram (from reviews)
+  const ratingCount = [5, 4, 3, 2, 1].map((star) => ({
+    stars: star,
+    count: reviews.filter((r) => r.rating === star).length,
+  }));
+  const totalRatings = reviews.length;
 
   return (
     <main className={styles.main}>
-      {/* Product Section */}
+      {/* ============================
+          PRODUCT SECTION
+      ============================= */}
       <div className={styles.productSection}>
-        {/* Image Gallery */}
+        {/* IMAGE GALLERY */}
         <div className={styles.imageGallery}>
           <div className={styles.categoryBadge}>{product.category}</div>
+
+          {/* Main image */}
           <div className={styles.mainImage}>
             <Image
-              src={product.imageUrl}
+              src={product.images[selectedImage]}
               alt={product.name}
               fill
               className={styles.productImage}
               priority
             />
           </div>
-          {/* TODO: Add thumbnail images when multiple images available */}
+
+          {/* Thumbnails */}
+          {product.images.length > 1 && (
+            <div className={styles.thumbnailRow}>
+              {product.images.map((img, index) => (
+                <button
+                  key={index}
+                  className={`${styles.thumbnail} ${
+                    index === selectedImage ? styles.activeThumb : ""
+                  }`}
+                  onClick={() => setSelectedImage(index)}
+                >
+                  <Image
+                    src={img}
+                    alt={`thumb-${index}`}
+                    fill
+                    className={styles.thumbnailImage}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Product Info */}
+        {/* PRODUCT DETAILS */}
         <div className={styles.productInfo}>
-          <div className={styles.sellerName}>{product.seller}</div>
+          <div className={styles.sellerName}>{product.seller_name}</div>
           <h1 className={styles.productName}>{product.name}</h1>
 
           {/* Rating */}
           <div className={styles.ratingSection}>
             {renderStars(product.rating)}
             <span className={styles.ratingNumber}>
-              {product.rating} ({product.totalReviews} reviews)
+              {product.rating} ({product.total_reviews} reviews)
             </span>
           </div>
 
@@ -153,60 +251,22 @@ export default function ProductDetail() {
           {/* Description */}
           <p className={styles.description}>{product.description}</p>
 
-          {/* Quantity Selector */}
-          <div className={styles.quantitySection}>
-            <button
-              onClick={decrementQuantity}
-              className={styles.quantityButton}
-              disabled={quantity <= 1}
-              aria-label="Decrease quantity"
-            >
-              <Minus size={20} />
-            </button>
-            <span className={styles.quantity}>{quantity}</span>
-            <button
-              onClick={incrementQuantity}
-              className={styles.quantityButton}
-              disabled={quantity >= product.stock}
-              aria-label="Increase quantity"
-            >
-              <Plus size={20} />
-            </button>
-            <span className={styles.totalPrice}>Total: ${product.price * quantity}</span>
-          </div>
-
-          {/* Add to Cart Button */}
-          <button onClick={handleAddToCart} className={styles.addToCartButton}>
-            Add To Cart
-          </button>
-
-          {/* Features */}
-          <div className={styles.features}>
-            <div className={styles.feature}>
-              <Truck size={20} />
-              <span>Free shipping on orders over $100</span>
-            </div>
-            <div className={styles.feature}>
-              <ShieldCheck size={20} />
-              <span>Secure checkout with buyer protection</span>
-            </div>
-            <div className={styles.feature}>
-              <RotateCcw size={20} />
-              <span>30-day return policy for peace of mind</span>
-            </div>
-          </div>
+          {/* Add to cart */}
+          <button className={styles.addToCartButton}>Add To Cart</button>
         </div>
       </div>
 
-      {/* Reviews Section */}
+      {/* ============================
+          REVIEWS
+      ============================= */}
       <div className={styles.reviewsSection}>
         <h2 className={styles.reviewsTitle}>Customer Reviews</h2>
         <p className={styles.reviewsSubtitle}>
           See what customers think about this artisan creation
         </p>
 
+        {/* Rating Summary */}
         <div className={styles.reviewsContainer}>
-          {/* Rating Summary */}
           <div className={styles.ratingSummary}>
             <div className={styles.overallRating}>
               <div className={styles.ratingNumber}>{product.rating}</div>
@@ -214,19 +274,27 @@ export default function ProductDetail() {
               {renderStars(product.rating)}
             </div>
 
-            <button className={styles.writeReviewButton}>Write a review</button>
+            <button
+              className={styles.writeReviewButton}
+              onClick={() => setShowReviewModal(true)}
+            >
+              Write a Review
+            </button>
           </div>
 
-          {/* Rating Distribution */}
+          {/* Histogram */}
           <div className={styles.ratingDistribution}>
-            {ratingDistribution.map((item) => (
+            {ratingCount.map((item) => (
               <div key={item.stars} className={styles.ratingBar}>
                 <span className={styles.starLabel}>{item.stars} star</span>
                 <div className={styles.barContainer}>
                   <div
                     className={styles.barFill}
                     style={{
-                      width: totalRatings > 0 ? `${(item.count / totalRatings) * 100}%` : "0%",
+                      width:
+                        totalRatings > 0
+                          ? `${(item.count / totalRatings) * 100}%`
+                          : "0%",
                     }}
                   />
                 </div>
@@ -238,24 +306,67 @@ export default function ProductDetail() {
 
         {/* Individual Reviews */}
         <div className={styles.reviewsList}>
-          {mockReviews.map((review) => (
-            <div key={review.id} className={styles.reviewCard}>
-              <div className={styles.reviewHeader}>
-                <span className={styles.reviewerName}>{review.userName}</span>
-                {renderStars(review.rating)}
+          {reviews.length === 0 ? (
+            <p className={styles.noReviews}>No reviews yet.</p>
+          ) : (
+            reviews.map((review) => (
+              <div key={review.review_id} className={styles.reviewCard}>
+                <div className={styles.reviewHeader}>
+                  <span className={styles.reviewerName}>
+                    {review.user_name}
+                  </span>
+                  {renderStars(review.rating)}
+                </div>
+                <div className={styles.reviewBody}>
+                  <p className={styles.reviewComment}>{review.comment}</p>
+                </div>
               </div>
-              <div className={styles.reviewBody}>
-                <h4 className={styles.reviewTitle}>
-                  {review.rating === 5
-                    ? "Beautiful and well-crafted!"
-                    : "Exceeded my expectations"}
-                </h4>
-                <p className={styles.reviewComment}>{review.comment}</p>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
+
+      {/* ============================
+          WRITE REVIEW MODAL
+      ============================= */}
+      {showReviewModal && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <button
+              className={styles.closeButton}
+              onClick={() => setShowReviewModal(false)}
+            >
+              <X size={20} />
+            </button>
+
+            <h3 className={styles.modalTitle}>Write a Review</h3>
+
+            {/* RATING INPUT */}
+            <div className={styles.modalRating}>{renderRatingInput()}</div>
+
+            {/* COMMENT INPUT */}
+            <textarea
+              className={styles.modalTextarea}
+              placeholder="Write your thoughts..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+
+            {errorMsg && (
+              <p className={styles.errorText}>{errorMsg}</p>
+            )}
+
+            <button
+              className={styles.submitReviewButton}
+              disabled={submitting}
+              onClick={submitReview}
+            >
+              {submitting ? "Submitting..." : "Submit Review"}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
+
