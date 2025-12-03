@@ -16,18 +16,11 @@ export interface Product {
 }
 
 export default function ProductCard({ product }: { product: Product }) {
-  const router = useRouter();
-
-  const handleClick = () => {
-    router.push(`/product/${product.product_id}`);
-  };
-
   return (
-    <div
-      className="bg-white border rounded-lg shadow-sm p-4 relative hover:shadow-md transition min-w-[260px] cursor-pointer"
-      onClick={handleClick}
+    <Link
+      href={`/product/${product.product_id}`}
+      className="block bg-white border rounded-lg shadow-sm p-4 relative hover:shadow-md transition min-w-[260px]"
     >
-
       {/* CATEGORY TAG */}
       <span className="absolute z-20 px-3 py-1 text-xs border rounded-full shadow-sm top-3 left-3 bg-white/90 text-cafe border-cafe/10 backdrop-blur-sm">
         {product.category}
@@ -58,24 +51,21 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
       )}
 
-        {/* NAME */}
-        <h3 className="text-lg font-medium text-ebony">{product.name}</h3>
+      {/* NAME */}
+      <h3 className="text-lg font-medium text-ebony">{product.name}</h3>
 
-        {/* SELLER */}
-        <p className="text-xs text-reseda">by {product.seller}</p>
+      {/* SELLER */}
+      <p className="text-xs text-reseda">by {product.seller}</p>
 
       {/* RATING */}
-      <p className="my-1 text-sm">⭐ {product.rating} ({product.reviews})</p>
+      <p className="my-1 text-sm">
+        ⭐ {product.rating} ({product.reviews})
+      </p>
 
-        {/* PRICE */}
-        <p className="text-lg font-semibold text-chocolate">
-          ${product.price}
-        </p>
-      </div>
+      {/* PRICE */}
+      <p className="text-lg font-semibold text-chocolate">
+        ${product.price}
+      </p>
     </Link>
   );
 }
-
-
-
-
