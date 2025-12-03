@@ -155,14 +155,19 @@ export default function SellerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isOwner = user && user.seller_id === sellerId;
+  const isOwner = user && seller && user.seller_id === seller.seller_id;
 
   useEffect(() => {
     if (sellerId) {
       fetchSellerData();
-      fetchProducts();
     }
   }, [sellerId]);
+
+  useEffect(() => {
+    if (seller) {
+      fetchProducts();
+    }
+  }, [seller]);
 
   const fetchSellerData = async () => {
     setLoading(true);
@@ -193,11 +198,12 @@ export default function SellerProfilePage() {
   };
 
   const fetchProducts = async () => {
+    if (!seller) return;
     if (useMock) {
       setProducts(mockProducts[sellerId] || []);
     } else {
       try {
-        const res = await fetch(`/api/products?seller_id=${sellerId}`);
+        const res = await fetch(`/api/products?seller_id=${seller.seller_id}`);
         const data = await res.json();
         setProducts(data);
       } catch (error) {
@@ -229,11 +235,11 @@ export default function SellerProfilePage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            seller_id: sellerId,
+            seller_id: seller.seller_id,
             name: newProduct.name,
             description: newProduct.description,
             price: parseFloat(newProduct.price),
-            quantity: parseInt(newProduct.quantity) || 0,
+            stock: parseInt(newProduct.quantity) || 0,
             category: newProduct.category,
           }),
         });

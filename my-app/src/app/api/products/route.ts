@@ -81,7 +81,15 @@ async function createProduct(req: NextRequest) {
     return NextResponse.json({ error: "Validation failed", details: validation.errors }, { status: 400 });
   }
 
-  const { name, description, price, category_id, images, stock } = validation.data;
+  const { name, description, price, category, images, stock } = validation.data;
+
+  const categoryResult = await sql`
+    SELECT id FROM categories WHERE name = ${category}
+  `;
+  if (categoryResult.length === 0) {
+    return NextResponse.json({ error: "Category not found" }, { status: 400 });
+  }
+  const category_id = categoryResult[0].id;
 
   const product = await sql`
     INSERT INTO products (seller_id, name, description, price, category_id, images, stock)
