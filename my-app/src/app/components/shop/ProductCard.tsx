@@ -1,6 +1,6 @@
 import { Heart } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export interface Product {
   product_id: string;
@@ -58,20 +58,21 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
       )}
 
-      {/* NAME */}
-      <h3 className="text-lg font-medium text-ebony">{product.name}</h3>
+        {/* NAME */}
+        <h3 className="text-lg font-medium text-ebony">{product.name}</h3>
 
-      {/* SELLER */}
-      <p className="text-xs text-reseda">by {product.seller}</p>
+        {/* SELLER */}
+        <p className="text-xs text-reseda">by {product.seller}</p>
 
       {/* RATING */}
       <p className="my-1 text-sm">⭐ {product.rating} ({product.reviews})</p>
 
-      {/* PRICE */}
-      <p className="text-lg font-semibold text-chocolate">
-        ${product.price}
-      </p>
-    </div>
+        {/* PRICE */}
+        <p className="text-lg font-semibold text-chocolate">
+          ${product.price}
+        </p>
+      </div>
+    </Link>
   );
 }
 
