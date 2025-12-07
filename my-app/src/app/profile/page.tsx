@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../components/auth/AuthContext";
 import { useRouter } from "next/navigation";
-import ImageUpload from "../components/ImageUpload";
 
 interface Order {
   id: string;
@@ -41,7 +40,7 @@ interface User {
 }
 
 const ProfilePage = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, updateUser } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("orders");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -52,10 +51,11 @@ const ProfilePage = () => {
   const [settingsForm, setSettingsForm] = useState({
     name: "",
     email: "",
-    image: "",
     currentPassword: "",
     newPassword: "",
   });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -95,7 +95,7 @@ const ProfilePage = () => {
       const res = await fetch("/api/users");
       const data = await res.json();
       setUserData(data);
-      setSettingsForm({ ...settingsForm, name: data.name, email: data.email, image: data.image || "" });
+      setSettingsForm({ ...settingsForm, name: data.name, email: data.email });
       setLoading(false);
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -104,15 +104,18 @@ const ProfilePage = () => {
   };
 
   const handleUpdateSettings = async () => {
+    setError(null);
+    setSuccess(null);
     try {
+      const body = {
+        name: settingsForm.name,
+        email: settingsForm.email,
+      };
+
       const res = await fetch("/api/users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: settingsForm.name,
-          email: settingsForm.email,
-          image: settingsForm.image,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
@@ -120,10 +123,15 @@ const ProfilePage = () => {
         setUserData(updatedUser);
         setEditingSettings(false);
         // Update auth context user
-        // Note: This would require updating the AuthContext to refresh user data
+        updateUser(updatedUser);
+        setSuccess("Settings saved successfully");
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || "Failed to save settings");
       }
     } catch (error) {
       console.error("Error updating settings:", error);
+      setError("An unexpected error occurred");
     }
   };
 
@@ -337,7 +345,7 @@ const ProfilePage = () => {
                     </p>
                     <div style={{ display: "flex", gap: "1rem" }}>
                       <button
-                        onClick={() => router.push(`/product/${product.product_id}`)}
+                        onClick={() => router.push(`/products/${product.product_id}`)}
                         style={{
                           flex: 1,
                           padding: "0.5rem",
@@ -401,6 +409,30 @@ const ProfilePage = () => {
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: "2rem", marginBottom: "2rem" }}>
               Account Settings
             </h2>
+            {error && (
+              <div style={{
+                backgroundColor: "#f8d7da",
+                color: "#721c24",
+                padding: "1rem",
+                borderRadius: "8px",
+                marginBottom: "1rem",
+                border: "1px solid #f5c6cb"
+              }}>
+                {error}
+              </div>
+            )}
+            {success && (
+              <div style={{
+                backgroundColor: "#d4edda",
+                color: "#155724",
+                padding: "1rem",
+                borderRadius: "8px",
+                marginBottom: "1rem",
+                border: "1px solid #c3e6cb"
+              }}>
+                {success}
+              </div>
+            )}
             {userData && (
               <div style={{
                 backgroundColor: "#fefefe",
@@ -458,14 +490,6 @@ const ProfilePage = () => {
                           border: "1px solid #4a2f1b",
                           borderRadius: "4px"
                         }}
-                      />
-                    </div>
-                    <div style={{ marginBottom: "1rem" }}>
-                      <label style={{ display: "block", marginBottom: "0.5rem" }}>Profile Image:</label>
-                      <ImageUpload
-                        onImageUpload={(url) => setSettingsForm({ ...settingsForm, image: url })}
-                        currentImage={settingsForm.image}
-                        onRemove={() => setSettingsForm({ ...settingsForm, image: "" })}
                       />
                     </div>
                     <div style={{ display: "flex", gap: "1rem" }}>

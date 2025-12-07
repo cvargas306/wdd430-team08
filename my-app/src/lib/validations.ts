@@ -64,7 +64,7 @@ export const updateSellerSchema = z.object({
 export const updateUserSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
   email: z.string().email('Invalid email format').optional(),
-  image: z.string().url('Invalid image URL').optional(),
+  image: z.string().url('Invalid image URL').nullable().optional(),
 });
 
 // Order schemas

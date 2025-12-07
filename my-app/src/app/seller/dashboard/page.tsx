@@ -115,6 +115,9 @@ const SellerDashboardPage = () => {
   const handleCreateProduct = async () => {
     if (!user?.seller_id || !newProduct.name || !newProduct.price || !newProduct.category_id) return;
 
+    const categoryName = categories.find(cat => cat.id === newProduct.category_id)?.name;
+    if (!categoryName) return;
+
     try {
       const res = await fetch("/api/products", {
         method: "POST",
@@ -125,7 +128,7 @@ const SellerDashboardPage = () => {
           description: newProduct.description,
           price: parseFloat(newProduct.price),
           stock: parseInt(newProduct.quantity) || 0,
-          category_id: newProduct.category_id,
+          category: categoryName,
         }),
       });
       const product = await res.json();

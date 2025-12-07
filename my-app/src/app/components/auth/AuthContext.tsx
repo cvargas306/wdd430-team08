@@ -8,12 +8,14 @@ interface User {
   name: string;
   is_seller: boolean;
   seller_id?: string;
+  image?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUser: (updatedUser: Partial<User>) => void;
   isLoading: boolean;
 }
 
@@ -83,10 +85,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (updatedUser: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updatedUser } : null);
+  };
+
   const value: AuthContextType = {
     user,
     login,
     logout,
+    updateUser,
     isLoading,
   };
 

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../components/auth/AuthContext";
 import { useRouter } from "next/navigation";
-import ImageUpload from "../../components/ImageUpload";
 
 interface Product {
   product_id: string;
@@ -38,14 +37,13 @@ export default function SellerProfilePage() {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [editingSellerImage, setEditingSellerImage] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
     price: "",
     stock: "",
     category: "",
-    images: [] as string[],
+    image: "",
   });
 
   useEffect(() => {
@@ -84,22 +82,6 @@ export default function SellerProfilePage() {
     }
   };
 
-  const updateSellerImage = async (imageUrl: string) => {
-    if (!user?.seller_id) return;
-
-    try {
-      const res = await fetch(`/api/sellers/${user.seller_id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageUrl }),
-      });
-      const updatedSeller = await res.json();
-      setSeller(updatedSeller);
-      setEditingSellerImage(false);
-    } catch (error) {
-      console.error("Error updating seller image:", error);
-    }
-  };
 
   const addProduct = async () => {
     if (!user?.seller_id || !newProduct.name || !newProduct.price) return;
@@ -115,12 +97,12 @@ export default function SellerProfilePage() {
           price: parseFloat(newProduct.price),
           stock: parseInt(newProduct.stock) || 0,
           category: newProduct.category,
-          images: newProduct.images,
+          images: newProduct.image ? [newProduct.image] : [],
         }),
       });
       const product = await res.json();
       setProducts([product, ...products]);
-      setNewProduct({ name: "", description: "", price: "", stock: "", category: "", images: [] });
+      setNewProduct({ name: "", description: "", price: "", stock: "", category: "", image: "" });
       setShowAddProduct(false);
     } catch (error) {
       console.error("Error adding product:", error);
@@ -189,56 +171,6 @@ export default function SellerProfilePage() {
               </div>
             </div>
             <p style={{ marginTop: "1rem", lineHeight: "1.6" }}>{seller.description}</p>
-            {seller.image && (
-              <img
-                src={seller.image}
-                alt="Seller Profile"
-                style={{
-                  width: "100px",
-                  height: "100px",
-                  borderRadius: "50%",
-                  marginTop: "1rem",
-                  objectFit: "cover"
-                }}
-              />
-            )}
-            <button
-              onClick={() => setEditingSellerImage(true)}
-              style={{
-                padding: "0.5rem 1rem",
-                backgroundColor: "#8b5a3c",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                marginTop: "1rem"
-              }}
-            >
-              {seller.image ? "Update Profile Image" : "Add Profile Image"}
-            </button>
-            {editingSellerImage && (
-              <div style={{ marginTop: "1rem" }}>
-                <ImageUpload
-                  onImageUpload={updateSellerImage}
-                  currentImage={seller.image}
-                  onRemove={() => updateSellerImage("")}
-                />
-                <button
-                  onClick={() => setEditingSellerImage(false)}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    backgroundColor: "transparent",
-                    color: "#4a2f1b",
-                    border: "1px solid #4a2f1b",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    marginTop: "0.5rem"
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
           </div>
         </section>
       )}
@@ -418,11 +350,18 @@ export default function SellerProfilePage() {
                 }}
               />
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Product Image:</label>
-                <ImageUpload
-                  onImageUpload={(url) => setNewProduct({ ...newProduct, images: [url] })}
-                  currentImage={newProduct.images[0]}
-                  onRemove={() => setNewProduct({ ...newProduct, images: [] })}
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Product Image URL:</label>
+                <input
+                  type="url"
+                  value={newProduct.image}
+                  onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                  placeholder="Enter image URL (optional)"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #4a2f1b',
+                    borderRadius: '4px'
+                  }}
                 />
               </div>
               <button

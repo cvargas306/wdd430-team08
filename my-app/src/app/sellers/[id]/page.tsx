@@ -29,7 +29,6 @@ interface Seller {
   years_active: number;
   followers: number;
   image?: string;
-  email: string;
   created_at: string;
 }
 
@@ -292,7 +291,7 @@ export default function SellerProfilePage() {
                     fontWeight: "bold",
                     cursor: "pointer"
                   }}
-                  onClick={() => router.push(`/product/${product.product_id}`)}
+                  onClick={() => router.push(`/products/${product.product_id}`)}
                 >
                   View Product
                 </button>

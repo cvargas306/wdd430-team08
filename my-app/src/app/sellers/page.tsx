@@ -15,7 +15,6 @@ interface Seller {
   years_active: number;
   followers: number;
   image?: string;
-  email: string;
   created_at: string;
 }
 

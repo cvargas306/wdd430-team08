@@ -16,6 +16,7 @@ export async function middleware(request: NextRequest) {
     '/contact',
     '/shop',
     '/sellers',
+    '/products',
   ];
 
   // Public API routes
