@@ -14,12 +14,8 @@ interface Product {
   image_url: string | null;
   category: string | null;
   created_at: string;
-
-  // Add these to satisfy ProductCard:
   seller_name: string;
   total_reviews: number;
-
-  // Your existing optional fields:
   rating?: number;
   reviews?: number;
 }
