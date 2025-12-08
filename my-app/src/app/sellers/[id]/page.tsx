@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../components/auth/AuthContext";
 import { useRouter, useParams } from "next/navigation";
+import ProductCard from "@/app/components/shop/ProductCard";
 
 interface Product {
   product_id: string;
@@ -84,9 +85,8 @@ export default function SellerProfilePage() {
   };
 
   const fetchProducts = async () => {
-    if (!seller) return;
     try {
-      const res = await fetch(`/api/products?seller_id=${seller.seller_id}`);
+      const res = await fetch(`/api/products?seller_id=${sellerId}`);
       const data = await res.json();
       setProducts(data);
     } catch (error) {
@@ -200,10 +200,16 @@ export default function SellerProfilePage() {
 
       {/* Products Section */}
       <section style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "2rem"
+        }}>
           <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: "2rem" }}>
             Products ({products.length})
           </h2>
+
           {isOwner && (
             <button
               onClick={() => setShowAddProduct(true)}
@@ -223,81 +229,9 @@ export default function SellerProfilePage() {
           )}
         </div>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "2rem"
-        }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
           {products.map((product) => (
-            <div key={product.product_id} style={{
-              backgroundColor: "#fefefe",
-              border: "1px solid #e0d5c8",
-              borderRadius: "12px",
-              padding: "1.5rem",
-              boxShadow: "0 4px 8px rgba(0,0,0,0.1)"
-            }}>
-              <div style={{
-                width: "100%",
-                height: "200px",
-                backgroundColor: "#f0e6d6",
-                borderRadius: "8px",
-                marginBottom: "1rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#8b5a3c",
-                fontSize: "1.2rem"
-              }}>
-                🖼️ Image Placeholder
-              </div>
-              <h3 style={{
-                fontFamily: "var(--font-playfair)",
-                fontSize: "1.5rem",
-                marginBottom: "0.5rem"
-              }}>
-                {product.name}
-              </h3>
-              <p style={{
-                fontSize: "1rem",
-                lineHeight: "1.5",
-                marginBottom: "1rem",
-                color: "#6b4f3a"
-              }}>
-                {product.description}
-              </p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#8b5a3c" }}>
-                  ${product.price.toFixed(2)}
-                </span>
-                <span style={{ fontSize: "0.9rem", color: "#6b4f3a" }}>
-                  Stock: {product.quantity}
-                </span>
-              </div>
-              {product.rating && (
-                <div style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#6b4f3a" }}>
-                  ⭐ {product.rating} ({product.reviews} reviews)
-                </div>
-              )}
-              {!isOwner && (
-                <button
-                  style={{
-                    width: "100%",
-                    marginTop: "1rem",
-                    padding: "0.75rem",
-                    backgroundColor: "#8b5a3c",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "8px",
-                    fontSize: "1rem",
-                    fontWeight: "bold",
-                    cursor: "pointer"
-                  }}
-                  onClick={() => router.push(`/product/${product.product_id}`)}
-                >
-                  View Product
-                </button>
-              )}
-            </div>
+            <ProductCard key={product.product_id} product={product} />
           ))}
         </div>
       </section>

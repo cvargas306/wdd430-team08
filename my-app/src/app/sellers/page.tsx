@@ -114,19 +114,32 @@ export default function SellersPage() {
             onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
             onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
             >
-              <div style={{
-                width: "100%",
-                height: "200px",
-                backgroundColor: "#f0e6d6",
-                borderRadius: "8px",
-                marginBottom: "1rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#8b5a3c",
-                fontSize: "1.2rem"
-              }}>
-                🖼️ Image Placeholder
+              <div
+                style={{
+                  width: "100%",
+                  height: "200px",
+                  borderRadius: "8px",
+                  marginBottom: "1rem",
+                  overflow: "hidden",
+                  backgroundColor: "#f0e6d6",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {seller.image ? (
+                  <img
+                    src={seller.image}
+                    alt={seller.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <span style={{ color: "#8b5a3c", fontSize: "1.2rem" }}>🖼️ No image</span>
+                )}
               </div>
               <h3 style={{
                 fontFamily: "var(--font-playfair)",

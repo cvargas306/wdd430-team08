@@ -35,14 +35,15 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.category}
       </span>
 
-      {/* HEART BUTTON */}
+     {/* {HEART BUTTON}
       <button
         className="absolute z-20 p-1 rounded-full shadow top-3 right-3 bg-white/80"
         aria-label="Add to favorites"
         onClick={(e) => e.stopPropagation()}
       >
         <Heart size={18} className="text-cafe" />
-      </button>
+     </button>*/
+     }
 
       {/* PRODUCT IMAGE */}
       <div className="relative w-full h-48 mb-3 overflow-hidden rounded">

@@ -251,8 +251,10 @@ export default function ProductDetailPage() {
           {/* Description */}
           <p className={styles.description}>{product.description}</p>
 
-          {/* Add to cart */}
-          <button className={styles.addToCartButton}>Add To Cart</button>
+          {/* Add to cart 
+            <button className={styles.addToCartButton}>Add To Cart</button>
+          */}
+          
         </div>
       </div>
 
