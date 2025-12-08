@@ -6,18 +6,17 @@ import { useRouter, useParams } from "next/navigation";
 import ProductCard from "@/app/components/shop/ProductCard";
 
 interface Product {
-  product_id: string;
+  product_id: string;       
   name: string;
-  description: string | null;
   price: number;
-  quantity: number;
-  image_url: string | null;
-  category: string | null;
-  created_at: string;
-  seller_name: string;
-  total_reviews: number;
-  rating?: number;
-  reviews?: number;
+  description?: string;
+  images?: string[];
+  image_url?: string;       
+  seller_name: string;      
+  category: string;         
+  rating: number;            
+  total_reviews: number;     
+  stock: number;
 }
 
 interface Seller {
