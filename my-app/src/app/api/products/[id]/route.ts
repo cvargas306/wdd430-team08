@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
-import { withErrorHandler, requireSeller, getUserFromRequest } from "@/lib/error-handler";
+import { withErrorHandler, requireSeller } from "@/lib/error-handler";
 import { validateData, updateProductSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
@@ -113,7 +113,7 @@ async function updateProduct(req: NextRequest, { params }: { params: { id: strin
   const updateData = validation.data;
 
   const setFields = Object.entries(updateData)
-    .filter(([_, value]) => value !== undefined)
+    .filter(([ , value]) => value !== undefined)
     .map(([key, value]) => sql`${sql(key)} = ${value}`);
 
   if (setFields.length === 0) {

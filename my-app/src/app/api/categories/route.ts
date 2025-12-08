@@ -4,7 +4,7 @@ import { withErrorHandler } from "@/lib/error-handler";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 
-async function getCategories(req: NextRequest) {
+async function getCategories() {
   const categories = await sql`
     SELECT id, name
     FROM categories

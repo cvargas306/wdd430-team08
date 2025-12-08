@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
-import { setAuthCookies, hashPassword, verifyPassword } from "@/lib/auth";
+import { setAuthCookies, verifyPassword } from "@/lib/auth";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });
 

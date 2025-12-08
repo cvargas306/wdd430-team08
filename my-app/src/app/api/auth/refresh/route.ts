@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { refreshAccessToken } from "@/lib/auth";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     const newAccessToken = await refreshAccessToken();
 

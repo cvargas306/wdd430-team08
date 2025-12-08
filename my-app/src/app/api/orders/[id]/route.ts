@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
-import { withErrorHandler, getUserFromRequest, requireSeller } from "@/lib/error-handler";
+import { withErrorHandler, getUserFromRequest } from "@/lib/error-handler";
 import { validateData, updateOrderSchema } from "@/lib/validations";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });

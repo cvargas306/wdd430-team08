@@ -5,11 +5,6 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import {
   Star,
-  Truck,
-  ShieldCheck,
-  RotateCcw,
-  Minus,
-  Plus,
   X,
 } from "lucide-react";
 import styles from "./product-detail.module.css";
@@ -39,7 +34,6 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [loading, setLoading] = useState(true);
 

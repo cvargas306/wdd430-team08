@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
 
     const publicKey = process.env.IMAGEKIT_PUBLIC_KEY!;
     const privateKey = process.env.IMAGEKIT_PRIVATE_KEY!;
-    const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT!;
 
     const timestamp = Math.floor(Date.now() / 1000);
     const expire = timestamp + 30 * 60; // 30 minutes
