@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
-import { getUserFromToken } from "@/lib/auth";
+import { getUserFromToken } from "@/lib/auth-server";
 import { updateProductRating } from "@/lib/reviews";
 
 const sql = postgres(process.env.NEON_POSTGRES_URL!, { ssl: "require" });

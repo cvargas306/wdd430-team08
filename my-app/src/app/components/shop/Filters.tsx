@@ -26,19 +26,19 @@ export default function Filters({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState(search);
-  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
 
-  // FIXED — Only declared once
-  const [localMin, setLocalMin] = useState<number>(() => Number(minPrice) || 0);
-  const [localMax, setLocalMax] = useState<number>(() => Number(maxPrice) || 500);
+  const [categories, setCategories] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
-  // Sync internal sliders when URL params change
-  useEffect(() => {
-    setLocalMin(Number(minPrice));
-    setLocalMax(Number(maxPrice));
-  }, [minPrice, maxPrice]);
+  // 🔥 Dynamic max price from DB
+  const [maxPossiblePrice, setMaxPossiblePrice] = useState<number>(500);
 
-  // Load categories once
+  // Slider values
+  const [localMin, setLocalMin] = useState<number>(Number(minPrice) || 0);
+  const [localMax, setLocalMax] = useState<number>(Number(maxPrice) || 500);
+
+  // Load categories + maxPrice from API
   useEffect(() => {
     fetch("/api/categories")
       .then((r) => r.json())
@@ -51,9 +51,30 @@ export default function Filters({
         )
       )
       .catch((err) => console.error("Error loading categories:", err));
+
+    // Load max price dynamically from /api/products
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((products) => {
+        const computedMax = Math.max(...products.map((p: any) => p.price), 500);
+        setMaxPossiblePrice(computedMax);
+
+        // If current max filter is outside new range, adjust it
+        if (Number(maxPrice) > computedMax) {
+          onFiltersChange({ maxPrice: String(computedMax) });
+          setLocalMax(computedMax);
+        }
+      })
+      .catch((err) => console.error("Error loading max price:", err));
   }, []);
 
-  // Debounced search update
+  // Sync state when URL params change
+  useEffect(() => {
+    setLocalMin(Number(minPrice));
+    setLocalMax(Number(maxPrice));
+  }, [minPrice, maxPrice]);
+
+  // SEARCH — debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery !== search) {
@@ -64,13 +85,10 @@ export default function Filters({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Debounced price update WITH CHANGE-PREVENTION
+  // PRICE — debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (
-        String(localMin) !== minPrice ||
-        String(localMax) !== maxPrice
-      ) {
+      if (String(localMin) !== minPrice || String(localMax) !== maxPrice) {
         onFiltersChange({
           minPrice: String(localMin),
           maxPrice: String(localMax),
@@ -92,20 +110,19 @@ export default function Filters({
   const resetFilters = () => {
     setSearchQuery("");
     setLocalMin(0);
-    setLocalMax(500);
+    setLocalMax(maxPossiblePrice);
 
     onFiltersChange({
       sort: "newest",
       category: "all",
       minPrice: "0",
-      maxPrice: "500",
+      maxPrice: String(maxPossiblePrice),
       search: "",
     });
   };
 
   return (
     <div>
-      {/* MOBILE BUTTON */}
       <button
         className="flex items-center justify-between w-full p-3 mb-4 font-medium rounded-lg bg-chocolate text-cafe md:hidden"
         onClick={() => setMobileOpen(!mobileOpen)}
@@ -114,7 +131,6 @@ export default function Filters({
         {mobileOpen ? <ChevronUp /> : <ChevronDown />}
       </button>
 
-      {/* PANEL */}
       <div
         className={`p-8 bg-isabelline border border-[#d8d5d0] rounded-lg ${
           mobileOpen ? "block" : "hidden"
@@ -130,7 +146,7 @@ export default function Filters({
               value={searchQuery}
               placeholder="Search products..."
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chocolate"
+              className="w-full py-2 pl-10 pr-4 border rounded-lg"
             />
           </div>
         </div>
@@ -194,10 +210,7 @@ export default function Filters({
               {categories.map((cat) => {
                 const normalized = cat.name.trim().toLowerCase();
                 return (
-                  <label
-                    key={cat.id}
-                    className="flex items-center gap-2 cursor-pointer capitalize"
-                  >
+                  <label key={cat.id} className="flex items-center gap-2 cursor-pointer capitalize">
                     <input
                       type="radio"
                       name="category"
@@ -225,12 +238,11 @@ export default function Filters({
 
           {openPrice && (
             <div className="mt-4 text-sm">
-              {/* MIN */}
               <label className="block mb-1">Min: ${localMin}</label>
               <input
                 type="range"
                 min={0}
-                max={500}
+                max={maxPossiblePrice}
                 value={localMin}
                 onChange={(e) => {
                   const v = Number(e.target.value);
@@ -239,12 +251,11 @@ export default function Filters({
                 className="w-full"
               />
 
-              {/* MAX */}
               <label className="block mt-3 mb-1">Max: ${localMax}</label>
               <input
                 type="range"
                 min={0}
-                max={500}
+                max={maxPossiblePrice}
                 value={localMax}
                 onChange={(e) => {
                   const v = Number(e.target.value);
@@ -256,7 +267,6 @@ export default function Filters({
           )}
         </div>
 
-        {/* RESET */}
         <button
           onClick={resetFilters}
           className="w-full py-2.5 mt-6 bg-chocolate text-cafe font-medium rounded-lg border border-cafe hover:bg-cafe hover:scale-[1.02]"
@@ -267,6 +277,7 @@ export default function Filters({
     </div>
   );
 }
+
 
 
 

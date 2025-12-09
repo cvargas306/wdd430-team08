@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { refreshAccessToken } from "@/lib/auth";
+import { refreshAccessToken } from "@/lib/auth-server";
 
 export async function POST(req: NextRequest) {
   try {
