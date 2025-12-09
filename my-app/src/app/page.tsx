@@ -124,7 +124,7 @@ export default function Home() {
             </div>
             <div className={styles.itemInfo}>
               <h4 className={styles.itemName}>Handmade Ceramic Bowl</h4>
-              <p className={styles.itemArtist}>by Sarah Chen</p>
+              <p className={styles.itemArtist}>by Clay & Light Studio</p>
               <p className={styles.itemPrice}>$85</p>
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function Home() {
             </div>
             <div className={styles.itemInfo}>
               <h4 className={styles.itemName}>Organic Linen Throw Pillow & Macrame Weave</h4>
-              <p className={styles.itemArtist}>by Emma Rodriguez</p>
+              <p className={styles.itemArtist}>by Sustainable Textiles Co</p>
               <p className={styles.itemPrice}>$65</p>
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function Home() {
             </div>
             <div className={styles.itemInfo}>
               <h4 className={styles.itemName}>Artisan Wood-Latticed Cutting Board</h4>
-              <p className={styles.itemArtist}>by Michael Thompson</p>
+              <p className={styles.itemArtist}>by Forest & Grain Workshop</p>
               <p className={styles.itemPrice}>$95</p>
             </div>
           </div>
