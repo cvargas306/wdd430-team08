@@ -2,21 +2,32 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import styles from "./navbar.module.css";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [logoSrc, setLogoSrc] = useState("https://ik.imagekit.io/fara1dandara/logo-loom-white1.png"); // Try external first
+  const [logoSrc, setLogoSrc] = useState("https://ik.imagekit.io/fara1dandara/logo-loom-white1.png");
   const { user, logout, isLoading } = useAuth();
+  const router = useRouter();
 
   const handleLogoError = () => {
-    // If external image fails, fallback to local
-    if (logoSrc.startsWith('http')) {
+    if (logoSrc.startsWith("http")) {
       setLogoSrc("/logo-loom-white1.png");
     }
   };
+
+  const handleProfileNavigation = () => {
+  if (!user) return;
+  if (user.is_seller && user.seller_id) {
+    router.push(`/sellers/${user.seller_id}`);
+  } else {
+    router.push("/profile");
+  }
+};
+
 
   return (
     <nav className={styles.navbar}>
@@ -46,25 +57,33 @@ export default function Navbar() {
         {isLoading ? (
           <User size={22} />
         ) : user ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
-              onClick={() => window.location.href = user.is_seller ? '/seller/profile' : '/profile'}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+              onClick={handleProfileNavigation}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "inherit",
+              }}
             >
               <User size={22} />
             </button>
+
             <button
               onClick={logout}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "inherit",
+              }}
             >
               <LogOut size={22} />
             </button>
           </div>
         ) : (
-          <a
-            href="/login"
-            style={{ color: 'inherit', textDecoration: 'none' }}
-          >
+          <a href="/login" style={{ color: "inherit", textDecoration: "none" }}>
             <User size={22} />
           </a>
         )}
@@ -89,31 +108,39 @@ export default function Navbar() {
           {isLoading ? (
             <User size={22} />
           ) : user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
-                onClick={() => window.location.href = user.is_seller ? '/seller/profile' : '/profile'}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                onClick={handleProfileNavigation}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "inherit",
+                }}
               >
                 <User size={22} />
               </button>
+
               <button
                 onClick={logout}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "inherit",
+                }}
               >
                 <LogOut size={22} />
               </button>
             </div>
           ) : (
-            <a
-              href="/login"
-              style={{ color: 'inherit', textDecoration: 'none' }}
-            >
+            <a href="/login" style={{ color: "inherit", textDecoration: "none" }}>
               <User size={22} />
             </a>
           )}
         </div>
       </div>
-
     </nav>
   );
 }
+
