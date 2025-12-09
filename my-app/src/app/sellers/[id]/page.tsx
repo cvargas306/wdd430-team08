@@ -6,16 +6,16 @@ import { useRouter, useParams } from "next/navigation";
 import ProductCard from "@/app/components/shop/ProductCard";
 
 interface Product {
-  product_id: string;       
+  product_id: string;
   name: string;
   price: number;
   description?: string;
   images?: string[];
-  image_url?: string;       
-  seller_name: string;      
-  category: string;         
-  rating: number;            
-  total_reviews: number;     
+  image_url?: string;
+  seller_name: string;
+  category: string;
+  rating: number;
+  total_reviews: number;
   stock: number;
 }
 
@@ -35,163 +35,202 @@ interface Seller {
   created_at: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
 
 export default function SellerProfilePage() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
   const sellerId = params.id as string;
+
   const [seller, setSeller] = useState<Seller | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
     price: "",
     quantity: "",
-    category: "",
+    category_id: "",
+    image_url: "",     // NEW
   });
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const isOwner = user && seller && user.seller_id === seller.seller_id;
 
+  /* ---------------------------------------
+     FETCH SELLER
+  --------------------------------------- */
   useEffect(() => {
-    if (sellerId) {
-      fetchSellerData();
-    }
+    if (sellerId) fetchSellerData();
   }, [sellerId]);
 
-  useEffect(() => {
-    if (seller) {
-      fetchProducts();
-    }
-  }, [seller]);
-
-  const fetchSellerData = async () => {
+  async function fetchSellerData() {
     setLoading(true);
     try {
       const res = await fetch(`/api/sellers/${sellerId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSeller(data);
-      } else {
-        setError("Seller not found");
-      }
-    } catch (error) {
-      console.error("Error fetching seller:", error);
+      if (!res.ok) return setError("Seller not found");
+
+      const data = await res.json();
+      setSeller(data);
+    } catch {
       setError("Error loading seller");
     }
     setLoading(false);
-  };
+  }
 
-  const fetchProducts = async () => {
+  /* ---------------------------------------
+     FETCH CATEGORIES
+  --------------------------------------- */
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) =>
+        setCategories(
+          data.map((c: any) => ({
+            id: String(c.id),
+            name: c.name.trim(),
+          }))
+        )
+      )
+      .catch((err) => console.error("Error loading categories:", err));
+  }, []);
+
+  /* ---------------------------------------
+     FETCH PRODUCTS
+  --------------------------------------- */
+  useEffect(() => {
+    if (seller) fetchProducts();
+  }, [seller]);
+
+  async function fetchProducts() {
     try {
       const res = await fetch(`/api/products?seller_id=${sellerId}`);
       const data = await res.json();
       setProducts(data);
-    } catch (error) {
-      console.error("Error fetching products:", error);
+    } catch (err) {
+      console.error("Error fetching products:", err);
     }
-  };
+  }
 
-  const addProduct = async () => {
-    if (!isOwner || !newProduct.name || !newProduct.price) return;
+  /* ---------------------------------------
+     ADD PRODUCT (NORMAL FETCH)
+  --------------------------------------- */
+  async function addProduct() {
+    if (!isOwner) {
+      alert("You are not allowed to add products.");
+      return;
+    }
+
+    if (!newProduct.name || !newProduct.price || !newProduct.category_id) {
+      alert("All fields are required.");
+      return;
+    }
+
+    const selectedCategory = categories.find(
+      (c) => c.id === newProduct.category_id
+    );
+
+    if (!selectedCategory) {
+      alert("Invalid category");
+      return;
+    }
 
     try {
       const res = await fetch("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+
+          // REQUIRED FOR requireSeller()
+          "x-user-id": user.user_id,
+          "x-user-email": user.email,
+          "x-user-role": user.is_seller ? "seller" : "buyer",
+          "x-seller-id": user.seller_id ?? "",
+        },
         body: JSON.stringify({
-          seller_id: seller.seller_id,
-          name: newProduct.name,
-          description: newProduct.description,
-          price: parseFloat(newProduct.price),
-          stock: parseInt(newProduct.quantity) || 0,
-          category: newProduct.category,
-        }),
+        name: newProduct.name,
+        description: newProduct.description,
+        price: parseFloat(newProduct.price),
+        stock: parseInt(newProduct.quantity) || 0,
+        category: selectedCategory.name,
+        images: newProduct.image_url ? [newProduct.image_url] : [], // NEW
+      }),
+
       });
-      const product = await res.json();
-      setProducts([product, ...products]);
-      setNewProduct({ name: "", description: "", price: "", quantity: "", category: "" });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        console.error("Create error:", result);
+        alert(result.error || "Failed to add product");
+        return;
+      }
+
+      // Add product to UI
+      setProducts([result, ...products]);
+
+      // Reset form
+      setNewProduct({
+        name: "",
+        description: "",
+        price: "",
+        quantity: "",
+        category_id: "",
+        image_url: "",
+      });
+
       setShowAddProduct(false);
-    } catch (error) {
-      console.error("Error adding product:", error);
+    } catch (err) {
+      console.error("Error adding product:", err);
     }
-  };
-
-  if (loading) {
-    return <div style={{ textAlign: "center", padding: "2rem" }}>Loading...</div>;
   }
 
-  if (error || !seller) {
-    return <div style={{ textAlign: "center", padding: "2rem" }}>{error || "Seller not found"}</div>;
-  }
+  /* ---------------------------------------
+     RENDER
+  --------------------------------------- */
+
+  if (loading)
+    return <div className="text-center p-6 text-lg">Loading…</div>;
+
+  if (error || !seller)
+    return <div className="text-center p-6 text-lg">{error || "Seller not found"}</div>;
 
   return (
-    <div style={{ backgroundColor: "#ffffff", color: "#4a2f1b", fontFamily: "var(--font-roboto)", minHeight: "100vh" }}>
-      {/* Header */}
-      <section style={{ padding: "4rem 2rem", textAlign: "center", backgroundColor: "#f9f5f0" }}>
-        <h1 style={{
-          fontFamily: "var(--font-playfair)",
-          fontSize: "3rem",
-          marginBottom: "1rem",
-          color: "#4a2f1b"
-        }}>
-          {seller.name}
-        </h1>
-        <p style={{
-          fontSize: "1.2rem",
-          maxWidth: "600px",
-          margin: "0 auto",
-          lineHeight: "1.6"
-        }}>
+    <div className="bg-white text-ebony min-h-screen">
+
+      {/* HEADER */}
+      <section className="p-12 text-center bg-[#f9f5f0]">
+        <h1 className="text-4xl font-playfair mb-3">{seller.name}</h1>
+        <p className="text-lg max-w-xl mx-auto">
           Discover unique handcrafted items from this artisan.
         </p>
       </section>
 
-      {/* Seller Info */}
-      <section style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{
-          backgroundColor: "#fefefe",
-          border: "1px solid #e0d5c8",
-          borderRadius: "12px",
-          padding: "2rem",
-          marginBottom: "2rem",
-          boxShadow: "0 4px 8px rgba(0,0,0,0.1)"
-        }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-            <div>
-              <strong>Category:</strong> {seller.category}
-            </div>
-            <div>
-              <strong>Location:</strong> {seller.location}
-            </div>
-            <div>
-              <strong>Rating:</strong> ⭐ {seller.rating} ({seller.reviews} reviews)
-            </div>
-            <div>
-              <strong>Followers:</strong> {seller.followers.toLocaleString()}
-            </div>
-            <div>
-              <strong>Years Active:</strong> {seller.years_active}
-            </div>
+      {/* DETAILS */}
+      <section className="p-8 max-w-5xl mx-auto">
+        <div className="bg-white border rounded-xl p-6 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div><strong>Category:</strong> {seller.category}</div>
+            <div><strong>Location:</strong> {seller.location}</div>
+            <div><strong>Rating:</strong> ⭐ {seller.rating} ({seller.reviews})</div>
+            <div><strong>Followers:</strong> {seller.followers}</div>
+            <div><strong>Years Active:</strong> {seller.years_active}</div>
           </div>
-          <p style={{ marginTop: "1rem", lineHeight: "1.6" }}>{seller.description}</p>
+
+          <p className="mt-4">{seller.description}</p>
+
           {isOwner && (
             <button
               onClick={() => router.push("/seller/profile")}
-              style={{
-                marginTop: "1rem",
-                padding: "0.75rem 1.5rem",
-                backgroundColor: "#8b5a3c",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "1rem",
-                fontWeight: "bold",
-                cursor: "pointer"
-              }}
+              className="mt-4 px-4 py-2 bg-chocolate text-white rounded"
             >
               Manage Profile
             </button>
@@ -199,162 +238,125 @@ export default function SellerProfilePage() {
         </div>
       </section>
 
-      {/* Products Section */}
-      <section style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "2rem"
-        }}>
-          <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: "2rem" }}>
+      {/* PRODUCTS */}
+      <section className="p-8 max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-playfair">
             Products ({products.length})
           </h2>
 
           {isOwner && (
             <button
               onClick={() => setShowAddProduct(true)}
-              style={{
-                padding: "0.75rem 1.5rem",
-                backgroundColor: "#8b5a3c",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "1rem",
-                fontWeight: "bold",
-                cursor: "pointer"
-              }}
+              className="px-4 py-2 rounded text-white"
+              style={{ backgroundColor: "#4a2f1b" }}
             >
-              Add New Product
+              Add Product
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-          {products.map((product) => (
-            <ProductCard key={product.product_id} product={product} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {products.map((p) => (
+            <ProductCard key={p.product_id} product={p} />
           ))}
         </div>
       </section>
 
-      {/* Add Product Modal - Only for owner */}
+      {/* ADD PRODUCT MODAL */}
       {isOwner && showAddProduct && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '8px',
-            width: '400px',
-            color: '#4a2f1b'
-          }}>
-            <h3 style={{ marginBottom: '1rem', textAlign: 'center' }}>Add New Product</h3>
-            <form onSubmit={(e) => { e.preventDefault(); addProduct(); }}>
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl w-[400px] text-ebony">
+
+            <h3 className="text-xl mb-4 text-center">Add New Product</h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                addProduct();
+              }}
+            >
               <input
                 type="text"
                 placeholder="Product Name"
                 value={newProduct.name}
-                onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  marginBottom: '1rem',
-                  border: '1px solid #4a2f1b',
-                  borderRadius: '4px'
-                }}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, name: e.target.value })
+                }
+                className="w-full border p-2 mb-3 rounded"
                 required
               />
+
               <textarea
                 placeholder="Description"
                 value={newProduct.description}
-                onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  marginBottom: '1rem',
-                  border: '1px solid #4a2f1b',
-                  borderRadius: '4px',
-                  minHeight: '80px'
-                }}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, description: e.target.value })
+                }
+                className="w-full border p-2 mb-3 rounded min-h-[80px]"
               />
+
               <input
                 type="number"
-                step="0.01"
                 placeholder="Price"
                 value={newProduct.price}
-                onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  marginBottom: '1rem',
-                  border: '1px solid #4a2f1b',
-                  borderRadius: '4px'
-                }}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, price: e.target.value })
+                }
+                className="w-full border p-2 mb-3 rounded"
                 required
               />
+
               <input
                 type="number"
-                placeholder="Quantity"
+                placeholder="Stock Quantity"
                 value={newProduct.quantity}
-                onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  marginBottom: '1rem',
-                  border: '1px solid #4a2f1b',
-                  borderRadius: '4px'
-                }}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, quantity: e.target.value })
+                }
+                className="w-full border p-2 mb-3 rounded"
               />
+
               <input
                 type="text"
-                placeholder="Category"
-                value={newProduct.category}
-                onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  marginBottom: '1rem',
-                  border: '1px solid #4a2f1b',
-                  borderRadius: '4px'
-                }}
+                placeholder="Image URL"
+                value={newProduct.image_url}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, image_url: e.target.value })
+                }
+                className="w-full border p-2 mb-3 rounded"
               />
+
+
+              {/* CATEGORY DROPDOWN */}
+              <select
+                value={newProduct.category_id}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, category_id: e.target.value })
+                }
+                required
+                className="w-full border p-2 mb-4 rounded"
+              >
+                <option value="">Select Category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
               <button
                 type="submit"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  backgroundColor: '#8b5a3c',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
+                className="w-full py-2 rounded text-white font-bold"
+                style={{ backgroundColor: "#4a2f1b" }}
               >
                 Add Product
               </button>
             </form>
+
             <button
               onClick={() => setShowAddProduct(false)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                marginTop: '1rem',
-                backgroundColor: 'transparent',
-                color: '#4a2f1b',
-                border: '1px solid #4a2f1b',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
+              className="w-full mt-3 border p-2 rounded"
             >
               Cancel
             </button>
@@ -364,3 +366,4 @@ export default function SellerProfilePage() {
     </div>
   );
 }
+
